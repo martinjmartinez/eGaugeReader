@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_icons/flutter_icons.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:peta_app/Components/InfoTile.dart';
 import 'package:peta_app/Components/ProgressBar.dart';
@@ -10,8 +13,6 @@ import 'package:peta_app/Components/flutter_toggle_tab.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:xml2json/xml2json.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
@@ -48,12 +49,9 @@ class _MyHomePageState extends State<MyHomePage> {
     _fetchDataSinceLastBill();
     _fetchRangeData(fromDateRange, toDateRange);
 
-    timerActualData =
-        Timer.periodic(Duration(seconds: 1), (Timer t) => _fetchActualData());
-    timerReportData = Timer.periodic(
-        Duration(seconds: 60), (Timer t) => _fetchDataSinceLastBill());
-    timerRangeData = Timer.periodic(Duration(seconds: 30),
-        (Timer t) => _fetchRangeData(fromDateRange, toDateRange));
+    timerActualData = Timer.periodic(Duration(seconds: 1), (Timer t) => _fetchActualData());
+    timerReportData = Timer.periodic(Duration(seconds: 60), (Timer t) => _fetchDataSinceLastBill());
+    timerRangeData = Timer.periodic(Duration(seconds: 30), (Timer t) => _fetchRangeData(fromDateRange, toDateRange));
   }
 
   void _fetchActualData() async {
@@ -62,10 +60,8 @@ class _MyHomePageState extends State<MyHomePage> {
     final myTransformer = Xml2Json();
     myTransformer.parse(response.body);
     var attributes = json.decode(myTransformer.toGData())['data']['r'] as List;
-    var used =
-        attributes.firstWhere((element) => element['did'] == '0')['i']['\$t'];
-    var generated =
-        attributes.firstWhere((element) => element['did'] == '2')['i']['\$t'];
+    var used = attributes.firstWhere((element) => element['did'] == '0')['i']['\$t'];
+    var generated = attributes.firstWhere((element) => element['did'] == '2')['i']['\$t'];
 
     setState(() {
       actualConsumption = double.parse(used);
@@ -76,9 +72,8 @@ class _MyHomePageState extends State<MyHomePage> {
   DateTime _getDateOfBill(int day) {
     DateTime now = DateTime.now();
     int year = now.month == 1 ? now.year - 1 : now.year;
-    DateTime fromDateRange = now.day > day
-        ? DateTime(now.year, now.month, day, 12, 00, 0)
-        : DateTime(year, now.month - 1, day, 12, 00, 0);
+    DateTime fromDateRange =
+        now.day > day ? DateTime(now.year, now.month, day, 12, 00, 0) : DateTime(year, now.month - 1, day, 12, 00, 0);
 
     return fromDateRange;
   }
@@ -97,15 +92,9 @@ class _MyHomePageState extends State<MyHomePage> {
     var fromReg = json.decode(jsonData)['group']['data'][0]['r']['c'] as List;
     var toReg = json.decode(jsonData)['group']['data'][1]['r']['c'] as List;
 
-    var from = {
-      'use': int.parse(fromReg[0]['\$t']) / 3600000,
-      'gen': int.parse(fromReg[1]['\$t']) / 3600000
-    };
+    var from = {'use': int.parse(fromReg[0]['\$t']) / 3600000, 'gen': int.parse(fromReg[1]['\$t']) / 3600000};
 
-    var to = {
-      'use': int.parse(toReg[0]['\$t']) / 3600000,
-      'gen': int.parse(toReg[1]['\$t']) / 3600000
-    };
+    var to = {'use': int.parse(toReg[0]['\$t']) / 3600000, 'gen': int.parse(toReg[1]['\$t']) / 3600000};
 
     final used = to['use'] - from['use'];
     final gen = to['gen'] - from['gen'];
@@ -129,34 +118,32 @@ class _MyHomePageState extends State<MyHomePage> {
 
     var url =
         'https://egauge53186.egaug.es/cgi-bin/egauge-show?a&E&T=${(fromDate.millisecondsSinceEpoch / 1000).floor()},${(toDate.millisecondsSinceEpoch / 1000).floor()}';
-
     var response = await http.get(url);
-    final myTransformer = Xml2Json();
+    if (response.statusCode == 200) {
+      final myTransformer = Xml2Json();
 
-    myTransformer.parse(response.body);
-    var jsonData = myTransformer.toGData();
-    var fromReg = json.decode(jsonData)['group']['data'][0]['r']['c'] as List;
-    var toReg = json.decode(jsonData)['group']['data'][1]['r']['c'] as List;
+      myTransformer.parse(response.body);
+      var jsonData = myTransformer.toGData();
+      var fromReg = (json.decode(jsonData)['group']['data'][0] != null
+          ? json.decode(jsonData)['group']['data'][0]['r']['c']
+          : json.decode(jsonData)['group']['data']['r'][0]['c']) as List;
+      var toReg = (json.decode(jsonData)['group']['data'][1] != null
+          ? json.decode(jsonData)['group']['data'][1]['r']['c']
+          : json.decode(jsonData)['group']['data']['r'][1]['c']) as List;
 
-    var from = {
-      'use': int.parse(fromReg[0]['\$t']) / 3600000,
-      'gen': int.parse(fromReg[1]['\$t']) / 3600000
-    };
+      var from = {'use': int.parse(fromReg[0]['\$t']) / 3600000, 'gen': int.parse(fromReg[1]['\$t']) / 3600000};
+      var to = {'use': int.parse(toReg[0]['\$t']) / 3600000, 'gen': int.parse(toReg[1]['\$t']) / 3600000};
 
-    var to = {
-      'use': int.parse(toReg[0]['\$t']) / 3600000,
-      'gen': int.parse(toReg[1]['\$t']) / 3600000
-    };
+      final used = to['use'] - from['use'];
+      final gen = to['gen'] - from['gen'];
 
-    final used = to['use'] - from['use'];
-    final gen = to['gen'] - from['gen'];
-
-    setState(() {
-      tempUsed = used;
-      tempGenerated = gen;
-      fromDateRange = fromDate;
-      toDateRange = toDate;
-    });
+      setState(() {
+        tempUsed = used;
+        tempGenerated = gen;
+        fromDateRange = fromDate;
+        toDateRange = toDate;
+      });
+    }
   }
 
   void _onSelectionChanged(DateRangePickerSelectionChangedArgs args) {
@@ -166,8 +153,7 @@ class _MyHomePageState extends State<MyHomePage> {
     var isToday = end.difference(now).inDays;
 
     DateTime newStart = DateTime(start.year, start.month, start.day, 0, 0, 0);
-    DateTime newEnd =
-        isToday == 0 ? now : DateTime(end.year, end.month, end.day, 23, 59, 59);
+    DateTime newEnd = isToday == 0 ? now : DateTime(end.year, end.month, end.day, 23, 59, 59);
 
     setState(() {
       fromDateRange = newStart;
@@ -243,41 +229,28 @@ class _MyHomePageState extends State<MyHomePage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            SectionHeader(
-                title: 'Actual',
-                subTitle: 'Cuanto estoy generando/consumiendo?'),
-            SizedBox(height: 16),
+            SectionHeader(title: 'Actual', subTitle: 'Cuanto estoy generando/consumiendo actualmente?'),
             buildActualMesurements(),
             SectionHeader(
                 title: 'Resumen de periodo',
-                subTitle:
-                'Cuanto estoy generando/consumiendo en un rango de tiempo?'),
+                subTitle: 'Cuanto estoy generando/consumiendo en un rango de tiempo dado?'),
             buildDateRanges(context),
-            SizedBox(height: 14),
-//            Text(
-//              "${formatter.format(fromDateRange)} - ${formatter.format(toDateRange)}",
-//              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w300),
-//            ),
+            SizedBox(height: 8),
+            Text(
+              "${formatter.format(fromDateRange)} - ${formatter.format(toDateRange)}",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w300, color: Color(0XFF3C6E71)),
+            ),
+            SizedBox(height: 8),
+
 //            SectionHeader(
 //                title: 'Flujo de Energía',
 //                subTitle: 'Estoy generando más de lo que consumo?'),
-            buildGoals(context),
-            SizedBox(height: 6),
             buildReportData(),
+            SizedBox(height: 6),
+            buildGoals(context),
           ],
         ),
       ),
-    );
-  }
-
-  Widget quickReport() {
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        buildReportData(),
-        const SizedBox(height: 8),
-
-      ],
     );
   }
 
@@ -309,18 +282,17 @@ class _MyHomePageState extends State<MyHomePage> {
             InfoTile(
               value: "\$${numberFormat.format(tempUsed * 11.10)}",
               nose: 'DOP',
-              label: 'Usado',
+              label: 'Factura',
             ),
             InfoTile(
               value: "\$${numberFormat.format(tempGenerated * 11.10)}",
               nose: 'DOP',
-              label: 'Ahorrado',
+              label: 'Ahorro',
             ),
             InfoTile(
-              value:
-                  "\$${numberFormat.format(((tempUsed * 11.10) - (tempGenerated * 11.10)))}",
+              value: "\$${numberFormat.format(((tempUsed * 11.10) - (tempGenerated * 11.10)))}",
               nose: 'DOP',
-              label: 'Total',
+              label: 'Pagar',
             ),
           ],
         ),
@@ -336,10 +308,8 @@ class _MyHomePageState extends State<MyHomePage> {
       initialIndex: 0,
       unSelectedBackgroundColors: [Colors.white, Colors.white],
       selectedBackgroundColors: [Color(0XFF3C6E71)],
-      selectedTextStyle: TextStyle(
-          color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
-      unSelectedTextStyle: TextStyle(
-          color: Color(0XFF3C6E71), fontSize: 14, fontWeight: FontWeight.w500),
+      selectedTextStyle: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+      unSelectedTextStyle: TextStyle(color: Color(0XFF3C6E71), fontSize: 14, fontWeight: FontWeight.w500),
       labels: const ["Factura", "Hoy", "Semana", "Mes", 'Custom'],
       selectedLabelIndex: (index) {
         var now = DateTime.now();
@@ -348,16 +318,12 @@ class _MyHomePageState extends State<MyHomePage> {
             _fetchRangeData();
             break;
           case 1:
-            _fetchRangeData(
-                DateTime(now.year, now.month, now.day, 0, 0, 0), now);
+            _fetchRangeData(DateTime(now.year, now.month, now.day, 0, 0, 0), now);
             break;
           case 2:
-            var _firstDayOfTheWeek = now.subtract(
-                new Duration(days: now.weekday == 1 ? 0 : now.weekday));
+            var _firstDayOfTheWeek = now.subtract(new Duration(days: now.weekday == 1 ? 0 : now.weekday));
             _fetchRangeData(
-                DateTime(_firstDayOfTheWeek.year, _firstDayOfTheWeek.month,
-                    _firstDayOfTheWeek.day, 0, 0, 0),
-                now);
+                DateTime(_firstDayOfTheWeek.year, _firstDayOfTheWeek.month, _firstDayOfTheWeek.day, 0, 0, 0), now);
             break;
 
           case 3:
@@ -387,12 +353,8 @@ class _MyHomePageState extends State<MyHomePage> {
             showRemainder: false,
             denominator: total, //TODO META CONSUMO
             title: 'Consumo',
-            dialogTextStyle: new TextStyle(
-                fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-            titleStyle: new TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Color(0XFF3C6E71)),
+            dialogTextStyle: new TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+            titleStyle: new TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0XFF3C6E71)),
             boarderColor: Colors.grey,
           ),
           new ProgressBar(
@@ -405,12 +367,8 @@ class _MyHomePageState extends State<MyHomePage> {
             showRemainder: false,
             denominator: total, //TODO META Generacion
             title: 'Generacion',
-            dialogTextStyle: new TextStyle(
-                fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-            titleStyle: new TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Color(0XFF3C6E71)),
+            dialogTextStyle: new TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+            titleStyle: new TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0XFF3C6E71)),
             boarderColor: Colors.grey,
           ),
         ],
@@ -426,8 +384,8 @@ class _MyHomePageState extends State<MyHomePage> {
           Flexible(
             flex: 50,
             child: SimpleGauge(
-              title: 'Consumiendo',
               maxValue: 4,
+              icon: FontAwesome.industry,
               value: actualConsumption,
               invertColors: false,
             ),
@@ -442,7 +400,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Flexible(
             flex: 50,
             child: SimpleGauge(
-              title: 'Generando',
+              icon: FontAwesome.leaf,
               maxValue: 4,
               value: actualGeneration,
               invertColors: true,
@@ -457,13 +415,11 @@ class _MyHomePageState extends State<MyHomePage> {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
-      toolbarHeight: 70,
+      centerTitle: false,
+      toolbarHeight: 60,
       title: Text(
         widget.title,
-        style: TextStyle(
-            color: Color(0XFF3C6E71),
-            fontSize: 30,
-            fontWeight: FontWeight.bold),
+        style: TextStyle(color: Color(0XFF3C6E71), fontSize: 30, fontWeight: FontWeight.bold),
       ),
     );
   }

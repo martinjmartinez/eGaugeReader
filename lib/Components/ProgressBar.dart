@@ -27,7 +27,7 @@ class ProgressBar extends StatelessWidget {
       @required this.titleStyle,
       @required this.dialogTextStyle,
       this.padding = 0.0,
-        this.showValues = true,
+      this.showValues = true,
       this.backgroundColor = Colors.white,
       this.boarderColor = Colors.grey,
       this.showRemainder = true});
@@ -36,9 +36,8 @@ class ProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     double barWithoutPadding = this.barWidth - this.padding;
 
-    double percentageWidth =
-        (this.numerator / this.denominator) * barWithoutPadding;
-    double displayPercentage = (this.numerator / this.denominator) * 100;
+    double percentageWidth = (this.numerator.abs() / this.denominator.abs()) * barWithoutPadding;
+    double displayPercentage = (this.numerator.abs() / this.denominator.abs()) * 100;
     double precentageBarWithoutPadding = percentageWidth - this.padding;
     if (percentageWidth.isNaN) {
       percentageWidth = 0.0;
@@ -68,14 +67,11 @@ class ProgressBar extends StatelessWidget {
                     this.title,
                     style: this.titleStyle,
                   ),
-                  showValues ?
-                  new Text(
-                      this.numerator.toStringAsFixed(1) +
-                          ' / ' +
-                          this.denominator.toStringAsFixed(1),
-                      style: this.titleStyle) :  new Text(
-                      this.numerator.toStringAsFixed(1) + ' kWh',
-                      style: this.titleStyle)
+                  showValues
+                      ? new Text(
+                          this.numerator.abs().toStringAsFixed(1) + ' / ' + this.denominator.abs().toStringAsFixed(1),
+                          style: this.titleStyle)
+                      : new Text(this.numerator.abs().toStringAsFixed(1) + ' kWh', style: this.titleStyle)
                 ],
               ),
               new SizedBox(
@@ -99,9 +95,7 @@ class ProgressBar extends StatelessWidget {
                   // percentage
                   new Container(
                     height: this.barHeight,
-                    width: (precentageBarWithoutPadding) < 0
-                        ? percentageWidth
-                        : (precentageBarWithoutPadding),
+                    width: (precentageBarWithoutPadding) < 0 ? percentageWidth : (precentageBarWithoutPadding),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(50),
                       color: this.barColor,
@@ -114,17 +108,14 @@ class ProgressBar extends StatelessWidget {
               ),
               Padding(
                 padding: EdgeInsets.only(
-                  left: ((precentageBarWithoutPadding) / 2) < 0
-                      ? percentageWidth / 2
-                      : (precentageBarWithoutPadding) / 2,
+                  left:
+                      ((precentageBarWithoutPadding) / 2) < 0 ? percentageWidth / 2 : (precentageBarWithoutPadding) / 2,
                 ),
                 child: new Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     this.showRemainder == true
-                        ? CustomPaint(
-                            size: Size(10, 8),
-                            painter: DrawTriangle(this.barColor))
+                        ? CustomPaint(size: Size(10, 8), painter: DrawTriangle(this.barColor))
                         : SizedBox(
                             width: 0,
                             height: 0,
@@ -149,9 +140,7 @@ class ProgressBar extends StatelessWidget {
                                   style: this.dialogTextStyle,
                                 ),
                                 new Text(
-                                  'Remainder : ' +
-                                      (this.denominator - this.numerator)
-                                          .toStringAsFixed(1),
+                                  'Remainder : ' + (this.denominator.abs() - this.numerator.abs()).toStringAsFixed(1),
                                   overflow: TextOverflow.clip,
                                   style: this.dialogTextStyle,
                                 ),

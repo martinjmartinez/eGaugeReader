@@ -24,11 +24,7 @@ class InfoTile extends StatelessWidget {
         children: [
           Text(
             value,
-            style: TextStyle(
-              fontSize: 25,
-              fontWeight: FontWeight.w500,
-              color:Color(0XFF3C6E71)
-            ),
+            style: TextStyle(fontSize: 25, fontWeight: FontWeight.w500, color: Color(0XFF3C6E71)),
           ),
           Text(
             nose,
@@ -45,7 +41,7 @@ class InfoTile extends StatelessWidget {
               fontSize: 16,
               fontWeight: FontWeight.bold,
               height: 1.5,
-              color:Color(0XFF3C6E71),
+              color: Color(0XFF3C6E71),
             ),
           ),
         ],
