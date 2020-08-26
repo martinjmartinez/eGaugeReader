@@ -82,7 +82,7 @@ class _SimpleGaugeState extends State<SimpleGauge> {
               GaugeAnnotation(
                   widget: Column(
                     children: [
-                      Icon(widget.icon, color: Color(0XFF3C6E71)),
+                      Icon(widget.icon, color: Color(0XFF3C6E71), size: 20,),
                       SizedBox(
                         height: 8,
                       ),
@@ -95,7 +95,7 @@ class _SimpleGaugeState extends State<SimpleGauge> {
                     ],
                   ),
                   angle: 90,
-                  positionFactor: 1.4),
+                  positionFactor: 1.5),
             ],
           )
         ],

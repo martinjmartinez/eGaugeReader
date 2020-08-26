@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_icons/flutter_icons.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:peta_app/Components/Chip.dart';
 import 'package:peta_app/Components/InfoTile.dart';
 import 'package:peta_app/Components/ProgressBar.dart';
 import 'package:peta_app/Components/SectionHeader.dart';
@@ -27,16 +28,22 @@ class _MyHomePageState extends State<MyHomePage> {
   Timer timerReportData;
   Timer timerRangeData;
 
-  double actualConsumption = 0;
-  double actualGeneration = 0;
-  double rangeGenerated = 0;
-  double rangeUsed = 0;
-  double tempGenerated = 0;
-  double tempUsed = 0;
-  bool subHidden = true;
+  double currentEnergyUsed = 0;
+  double currentEnergyGenerated = 0;
+  double rangeEnergyGenerated = 0;
+  double rangeEnergyUsed = 0;
+  double prevRangeEnergyGenerated = 0;
+  double prevRangeEnergyUsed = 0;
+  //
+  // double rangeGenerated = 0;
+  // double rangeUsed = 0;
+
   DateTime fromDateRange;
   DateTime toDateRange;
-  final DateFormat formatter = DateFormat('dd/MM/yyyy');
+  DateTime tempFromDateRange;
+  DateTime tempToDateRange;
+
+  final DateFormat formatter = DateFormat('dd/MM/yy');
   var numberFormat = new NumberFormat("#,###.0", "en_US");
 
   @override
@@ -44,14 +51,16 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     fromDateRange = _getDateOfBill(12);
     toDateRange = DateTime.now();
-
     _fetchActualData();
-    _fetchDataSinceLastBill();
-    _fetchRangeData(fromDateRange, toDateRange);
-
-    timerActualData = Timer.periodic(Duration(seconds: 1), (Timer t) => _fetchActualData());
-    timerReportData = Timer.periodic(Duration(seconds: 60), (Timer t) => _fetchDataSinceLastBill());
-    timerRangeData = Timer.periodic(Duration(seconds: 30), (Timer t) => _fetchRangeData(fromDateRange, toDateRange));
+    // _fetchDataSinceLastBill();
+    _fetchRangeData(
+        DateTime(toDateRange.year, toDateRange.month, toDateRange.day, 0, 0, 0),
+        toDateRange);
+    timerActualData =
+        Timer.periodic(Duration(seconds: 1), (Timer t) => _fetchActualData());
+    // timerReportData = Timer.periodic(Duration(seconds: 60), (Timer t) => _fetchDataSinceLastBill());
+    timerRangeData = Timer.periodic(Duration(seconds: 30),
+        (Timer t) => _fetchRangeData(fromDateRange, toDateRange));
   }
 
   void _fetchActualData() async {
@@ -60,49 +69,25 @@ class _MyHomePageState extends State<MyHomePage> {
     final myTransformer = Xml2Json();
     myTransformer.parse(response.body);
     var attributes = json.decode(myTransformer.toGData())['data']['r'] as List;
-    var used = attributes.firstWhere((element) => element['did'] == '0')['i']['\$t'];
-    var generated = attributes.firstWhere((element) => element['did'] == '2')['i']['\$t'];
+    var used =
+        attributes.firstWhere((element) => element['did'] == '0')['i']['\$t'];
+    var generated =
+        attributes.firstWhere((element) => element['did'] == '2')['i']['\$t'];
 
     setState(() {
-      actualConsumption = double.parse(used);
-      actualGeneration = double.parse(generated);
+      currentEnergyUsed = double.parse(used);
+      currentEnergyGenerated = double.parse(generated);
     });
   }
 
   DateTime _getDateOfBill(int day) {
     DateTime now = DateTime.now();
     int year = now.month == 1 ? now.year - 1 : now.year;
-    DateTime fromDateRange =
-        now.day > day ? DateTime(now.year, now.month, day, 12, 00, 0) : DateTime(year, now.month - 1, day, 12, 00, 0);
+    DateTime fromDateRange = now.day > day
+        ? DateTime(now.year, now.month, day, 12, 00, 0)
+        : DateTime(year, now.month - 1, day, 12, 00, 0);
 
     return fromDateRange;
-  }
-
-  void _fetchDataSinceLastBill([DateTime fromDate, DateTime toDate]) async {
-    int dayOfBill = 12;
-    DateTime now = DateTime.now();
-    var url =
-        'https://egauge53186.egaug.es/cgi-bin/egauge-show?a&E&T=${(_getDateOfBill(dayOfBill).millisecondsSinceEpoch / 1000).floor()},${(now.millisecondsSinceEpoch / 1000).floor()}';
-
-    var response = await http.get(url);
-    final myTransformer = Xml2Json();
-
-    myTransformer.parse(response.body);
-    var jsonData = myTransformer.toGData();
-    var fromReg = json.decode(jsonData)['group']['data'][0]['r']['c'] as List;
-    var toReg = json.decode(jsonData)['group']['data'][1]['r']['c'] as List;
-
-    var from = {'use': int.parse(fromReg[0]['\$t']) / 3600000, 'gen': int.parse(fromReg[1]['\$t']) / 3600000};
-
-    var to = {'use': int.parse(toReg[0]['\$t']) / 3600000, 'gen': int.parse(toReg[1]['\$t']) / 3600000};
-
-    final used = to['use'] - from['use'];
-    final gen = to['gen'] - from['gen'];
-
-    setState(() {
-      rangeUsed = used;
-      rangeGenerated = gen;
-    });
   }
 
   void _fetchRangeData([DateTime fromDate, DateTime toDate]) async {
@@ -115,34 +100,58 @@ class _MyHomePageState extends State<MyHomePage> {
 
     fromDate = fromDate != null ? fromDate : dateOfBill;
     toDate = toDate != null ? toDate : now;
-
-    var url =
+    DateTimeRange prevRange = getPreviousPeriod(fromDate, toDate);
+    print(prevRange.start);
+    print(prevRange.end);
+    var actualUrl =
         'https://egauge53186.egaug.es/cgi-bin/egauge-show?a&E&T=${(fromDate.millisecondsSinceEpoch / 1000).floor()},${(toDate.millisecondsSinceEpoch / 1000).floor()}';
-    var response = await http.get(url);
-    if (response.statusCode == 200) {
-      final myTransformer = Xml2Json();
+    var prevlUrl =
+        'https://egauge53186.egaug.es/cgi-bin/egauge-show?a&E&T=${(prevRange.start.millisecondsSinceEpoch / 1000).floor()},${(prevRange.end.millisecondsSinceEpoch / 1000).floor()}';
 
-      myTransformer.parse(response.body);
-      var jsonData = myTransformer.toGData();
-      var fromReg = (json.decode(jsonData)['group']['data'][0] != null
-          ? json.decode(jsonData)['group']['data'][0]['r']['c']
-          : json.decode(jsonData)['group']['data']['r'][0]['c']) as List;
-      var toReg = (json.decode(jsonData)['group']['data'][1] != null
-          ? json.decode(jsonData)['group']['data'][1]['r']['c']
-          : json.decode(jsonData)['group']['data']['r'][1]['c']) as List;
+    var actualResponse = await http.get(actualUrl);
+    var prevResponse = await http.get(prevlUrl);
+    var responses = [actualResponse, prevResponse];
+    var isPrev = false;
+    for (var response in responses) {
+      if (response.statusCode == 200) {
+        final myTransformer = Xml2Json();
 
-      var from = {'use': int.parse(fromReg[0]['\$t']) / 3600000, 'gen': int.parse(fromReg[1]['\$t']) / 3600000};
-      var to = {'use': int.parse(toReg[0]['\$t']) / 3600000, 'gen': int.parse(toReg[1]['\$t']) / 3600000};
+        myTransformer.parse(response.body);
+        var jsonData = myTransformer.toGData();
+        var fromReg = (json.decode(jsonData)['group']['data'][0] != null
+            ? json.decode(jsonData)['group']['data'][0]['r']['c']
+            : json.decode(jsonData)['group']['data']['r'][0]['c']) as List;
+        var toReg = (json.decode(jsonData)['group']['data'][1] != null
+            ? json.decode(jsonData)['group']['data'][1]['r']['c']
+            : json.decode(jsonData)['group']['data']['r'][1]['c']) as List;
 
-      final used = to['use'] - from['use'];
-      final gen = to['gen'] - from['gen'];
+        var from = {
+          'use': int.parse(fromReg[0]['\$t']) / 3600000,
+          'gen': int.parse(fromReg[1]['\$t']) / 3600000
+        };
+        var to = {
+          'use': int.parse(toReg[0]['\$t']) / 3600000,
+          'gen': int.parse(toReg[1]['\$t']) / 3600000
+        };
 
-      setState(() {
-        tempUsed = used;
-        tempGenerated = gen;
-        fromDateRange = fromDate;
-        toDateRange = toDate;
-      });
+        final used = to['use'] - from['use'];
+        final gen = to['gen'] - from['gen'];
+
+        if (isPrev) {
+          setState(() {
+            prevRangeEnergyUsed = used;
+            prevRangeEnergyGenerated = gen;
+          });
+        } else {
+          isPrev = true;
+          setState(() {
+            rangeEnergyUsed = used;
+            rangeEnergyGenerated = gen;
+            fromDateRange = fromDate;
+            toDateRange = toDate;
+          });
+        }
+      }
     }
   }
 
@@ -153,14 +162,13 @@ class _MyHomePageState extends State<MyHomePage> {
     var isToday = end.difference(now).inDays;
 
     DateTime newStart = DateTime(start.year, start.month, start.day, 0, 0, 0);
-    DateTime newEnd = isToday == 0 ? now : DateTime(end.year, end.month, end.day, 23, 59, 59);
+    DateTime newEnd =
+        isToday == 0 ? now : DateTime(end.year, end.month, end.day, 23, 59, 59);
 
     setState(() {
-      fromDateRange = newStart;
-      toDateRange = newEnd;
+      tempFromDateRange = newStart;
+      tempToDateRange = newEnd;
     });
-
-    _fetchRangeData(newStart, newEnd);
   }
 
   var alertStyle = AlertStyle(
@@ -178,6 +186,7 @@ class _MyHomePageState extends State<MyHomePage> {
           height: 300,
           child: SfDateRangePicker(
             maxDate: DateTime.now(),
+            initialSelectedRange: PickerDateRange(fromDateRange, toDateRange),
 //            minDate: DateTime.now(),//TODO DATE OF START READING
             initialDisplayDate: DateTime.now(),
             selectionColor: Color(0XFF3C6E71),
@@ -200,7 +209,14 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           DialogButton(
             color: Colors.white,
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              setState(() {
+                fromDateRange = tempFromDateRange;
+                toDateRange = tempToDateRange;
+              });
+              _fetchRangeData(fromDateRange, toDateRange);
+              Navigator.pop(context);
+            },
             child: Text(
               "Ok",
               style: TextStyle(color: Color(0XFF3C6E71), fontSize: 15),
@@ -212,7 +228,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     timerActualData?.cancel();
-    timerReportData?.cancel();
+    // timerReportData?.cancel();
     timerRangeData?.cancel();
 
     super.dispose();
@@ -229,70 +245,71 @@ class _MyHomePageState extends State<MyHomePage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            SectionHeader(title: 'Actual', subTitle: 'Cuanto estoy generando/consumiendo actualmente?'),
             buildActualMesurements(),
-            SectionHeader(
-                title: 'Resumen de periodo',
-                subTitle: 'Cuanto estoy generando/consumiendo en un rango de tiempo dado?'),
+            buildCurrentNetEnergy(),
+            SizedBox(height: 16),
             buildDateRanges(context),
             SizedBox(height: 8),
-            Text(
-              "${formatter.format(fromDateRange)} - ${formatter.format(toDateRange)}",
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w300, color: Color(0XFF3C6E71)),
-            ),
-            SizedBox(height: 8),
-
-//            SectionHeader(
-//                title: 'Flujo de Energía',
-//                subTitle: 'Estoy generando más de lo que consumo?'),
-            buildReportData(),
-            SizedBox(height: 6),
             buildGoals(context),
+            SizedBox(height: 16),
+            buildReportData(),
           ],
         ),
       ),
     );
   }
 
-  Table buildReportData() {
-    return Table(
-      border: TableBorder.symmetric(inside: BorderSide(width: 0.07)),
+  Widget buildReportData() {
+    return Column(
       children: [
-        TableRow(
+        SectionHeader(
+            title: 'Resumen por periodo',
+            subTitle:
+                'Cuanto estoy generando/consumiendo en un rango de tiempo dado?'),
+        SizedBox(height: 8),
+        Table(
+          border: TableBorder.symmetric(inside: BorderSide(width: 0.07)),
           children: [
-            InfoTile(
-              value: tempUsed.toStringAsFixed(2),
-              nose: 'kWh',
-              label: 'Usada',
+            TableRow(
+              children: [
+                InfoTile(
+                  value: rangeEnergyUsed.toStringAsFixed(2),
+                  nose: 'kWh',
+                  label: 'Usada',
+                ),
+                InfoTile(
+                  value: rangeEnergyGenerated.toStringAsFixed(2),
+                  nose: 'kWh',
+                  label: 'Generada',
+                ),
+                InfoTile(
+                  value: (rangeEnergyUsed - rangeEnergyGenerated)
+                      .toStringAsFixed(2),
+                  nose: 'kWh',
+                  label: 'Neta',
+                ),
+              ],
             ),
-            InfoTile(
-              value: tempGenerated.toStringAsFixed(2),
-              nose: 'kWh',
-              label: 'Generada',
-            ),
-            InfoTile(
-              value: (tempUsed - tempGenerated).toStringAsFixed(2),
-              nose: 'kWh',
-              label: 'Neta',
-            ),
-          ],
-        ),
-        TableRow(
-          children: [
-            InfoTile(
-              value: "\$${numberFormat.format(tempUsed * 11.10)}",
-              nose: 'DOP',
-              label: 'Factura',
-            ),
-            InfoTile(
-              value: "\$${numberFormat.format(tempGenerated * 11.10)}",
-              nose: 'DOP',
-              label: 'Ahorro',
-            ),
-            InfoTile(
-              value: "\$${numberFormat.format(((tempUsed * 11.10) - (tempGenerated * 11.10)))}",
-              nose: 'DOP',
-              label: 'Pagar',
+            TableRow(
+              children: [
+                InfoTile(
+                  value: "\$${numberFormat.format(rangeEnergyUsed * 11.10)}",
+                  nose: 'DOP',
+                  label: 'Factura',
+                ),
+                InfoTile(
+                  value:
+                      "\$${numberFormat.format(rangeEnergyGenerated * 11.10)}",
+                  nose: 'DOP',
+                  label: 'Ahorro',
+                ),
+                InfoTile(
+                  value:
+                      "\$${numberFormat.format(((rangeEnergyUsed * 11.10) - (rangeEnergyGenerated * 11.10)))}",
+                  nose: 'DOP',
+                  label: 'Pagar',
+                ),
+              ],
             ),
           ],
         ),
@@ -300,61 +317,123 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  FlutterToggleTab buildDateRanges(BuildContext context) {
-    return FlutterToggleTab(
-      width: 90,
-      borderRadius: 30,
-      height: 25,
-      initialIndex: 0,
-      unSelectedBackgroundColors: [Colors.white, Colors.white],
-      selectedBackgroundColors: [Color(0XFF3C6E71)],
-      selectedTextStyle: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
-      unSelectedTextStyle: TextStyle(color: Color(0XFF3C6E71), fontSize: 14, fontWeight: FontWeight.w500),
-      labels: const ["Factura", "Hoy", "Semana", "Mes", 'Custom'],
-      selectedLabelIndex: (index) {
-        var now = DateTime.now();
-        switch (index) {
-          case 0:
-            _fetchRangeData();
-            break;
-          case 1:
-            _fetchRangeData(DateTime(now.year, now.month, now.day, 0, 0, 0), now);
-            break;
-          case 2:
-            var _firstDayOfTheWeek = now.subtract(new Duration(days: now.weekday == 1 ? 0 : now.weekday));
-            _fetchRangeData(
-                DateTime(_firstDayOfTheWeek.year, _firstDayOfTheWeek.month, _firstDayOfTheWeek.day, 0, 0, 0), now);
-            break;
+  Widget buildDateRanges(BuildContext context) {
+    return Column(
+      children: [
+        FlutterToggleTab(
+          width: 90,
+          borderRadius: 30,
+          height: 25,
+          initialIndex: 0,
+          unSelectedBackgroundColors: [Colors.white, Colors.white],
+          selectedBackgroundColors: [Color(0XFF3C6E71)],
+          selectedTextStyle: TextStyle(
+              color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+          unSelectedTextStyle: TextStyle(
+              color: Color(0XFF3C6E71),
+              fontSize: 14,
+              fontWeight: FontWeight.w500),
+          labels: const ["Hoy", "Semana", "Mes", "Factura", 'Custom'],
+          selectedLabelIndex: (index) {
+            var now = DateTime.now();
+            switch (index) {
+              case 3:
+                _fetchRangeData();
+                break;
+              case 0:
+                _fetchRangeData(
+                    DateTime(now.year, now.month, now.day, 0, 0, 0), now);
+                break;
+              case 1:
+                var _firstDayOfTheWeek = now.subtract(
+                    new Duration(days: now.weekday == 1 ? 0 : now.weekday));
+                _fetchRangeData(
+                    DateTime(_firstDayOfTheWeek.year, _firstDayOfTheWeek.month,
+                        _firstDayOfTheWeek.day, 0, 0, 0),
+                    now);
+                break;
 
-          case 3:
-            _fetchRangeData(DateTime(now.year, now.month, 1, 0, 0, 0), now);
-            break;
-          case 4:
-            _openPopup(context);
-            _fetchRangeData(DateTime(now.year, now.month, 1, 0, 0, 0), now);
-            break;
-        }
-      },
+              case 2:
+                _fetchRangeData(DateTime(now.year, now.month, 1, 0, 0, 0), now);
+                break;
+              case 4:
+                _openPopup(context);
+                break;
+            }
+          },
+        ),
+        SizedBox(height: 8),
+        Text(
+          "${formatter.format(fromDateRange)} - ${formatter.format(toDateRange)}",
+          style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w300,
+              color: Color(0XFF3C6E71)),
+        ),
+      ],
     );
   }
 
+  DateTimeRange getPreviousPeriod(DateTime from, DateTime to) {
+    int diffDays = to.difference(from).inDays;
+    print(diffDays);
+    if(diffDays == 0) {
+      diffDays = 1;
+    }
+    DateTime newFrom = from.subtract(Duration(days: diffDays));
+    newFrom = DateTime(newFrom.year, newFrom.month, newFrom.day, 0, 0, 0);
+    DateTime newTo = to.subtract(Duration(days: diffDays));
+    newTo = DateTime(newTo.year, newTo.month, newTo.day, 23, 59, 59);
+
+    return DateTimeRange(start: newFrom, end: newTo);
+  }
+
   Container buildGoals(BuildContext context) {
-    var total = tempUsed >= tempGenerated ? tempUsed : tempGenerated;
+    var total = rangeEnergyUsed >= rangeEnergyGenerated
+        ? rangeEnergyUsed
+        : rangeEnergyGenerated;
+    var energyFlow = rangeEnergyGenerated - rangeEnergyUsed;
+    var prevEnergyFlow = prevRangeEnergyGenerated - prevRangeEnergyUsed;
+    print(prevEnergyFlow);
+    var delta = energyFlow - prevEnergyFlow;
+    var percentage = delta / prevEnergyFlow * 100;
+
     return Container(
       child: Column(
         children: [
+          SectionHeader(
+              title: 'Flujo de Energía',
+              subTitle: 'Estoy generando más de lo que consumo?'),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text(
+              " ${energyFlow.toStringAsFixed(2)} kWh",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0XFF3C6E71),
+              ),
+            ),
+            CustomChip(
+              label: '${percentage.toStringAsFixed(2)}%',
+              icon: FontAwesome.history,
+            ),
+          ]),
           new ProgressBar(
             showValues: false,
             padding: 5,
             barColor: Color(0XFFe57373),
             barHeight: 15,
             barWidth: MediaQuery.of(context).size.width,
-            numerator: tempUsed,
+            numerator: rangeEnergyUsed,
             showRemainder: false,
             denominator: total, //TODO META CONSUMO
-            title: 'Consumo',
-            dialogTextStyle: new TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-            titleStyle: new TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0XFF3C6E71)),
+            title: 'Usada',
+            dialogTextStyle: new TextStyle(
+                fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+            titleStyle: new TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Color(0XFF3C6E71)),
             boarderColor: Colors.grey,
           ),
           new ProgressBar(
@@ -363,12 +442,16 @@ class _MyHomePageState extends State<MyHomePage> {
             barColor: Color(0XFF81c784),
             barHeight: 15,
             barWidth: MediaQuery.of(context).size.width,
-            numerator: tempGenerated,
+            numerator: rangeEnergyGenerated,
             showRemainder: false,
             denominator: total, //TODO META Generacion
-            title: 'Generacion',
-            dialogTextStyle: new TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-            titleStyle: new TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0XFF3C6E71)),
+            title: 'Generada',
+            dialogTextStyle: new TextStyle(
+                fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+            titleStyle: new TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Color(0XFF3C6E71)),
             boarderColor: Colors.grey,
           ),
         ],
@@ -378,36 +461,88 @@ class _MyHomePageState extends State<MyHomePage> {
 
   IntrinsicHeight buildActualMesurements() {
     return IntrinsicHeight(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: <Widget>[
-          Flexible(
-            flex: 50,
-            child: SimpleGauge(
-              maxValue: 4,
-              icon: FontAwesome.industry,
-              value: actualConsumption,
-              invertColors: false,
-            ),
-          ),
-          Flexible(
-            flex: 1,
-            child: VerticalDivider(
-              indent: 16,
-              endIndent: 16,
-            ),
-          ),
-          Flexible(
-            flex: 50,
-            child: SimpleGauge(
-              icon: FontAwesome.leaf,
-              maxValue: 4,
-              value: actualGeneration,
-              invertColors: true,
-            ),
-          ),
+      child: Column(
+        children: [
+          SectionHeader(
+              title: 'Actual',
+              subTitle: 'Cuanto estoy generando/consumiendo actualmente?'),
+          buildGauges(),
         ],
       ),
+    );
+  }
+
+  Row buildCurrentNetEnergy() {
+    double currentNetEnergy;
+    IconData icon;
+    Color color;
+    if (currentEnergyUsed > currentEnergyGenerated) {
+      currentNetEnergy = currentEnergyUsed - currentEnergyGenerated;
+      icon = FontAwesome.industry;
+      color = Color(0XFFe57373);
+    } else {
+      currentNetEnergy = currentEnergyGenerated - currentEnergyUsed;
+      icon = FontAwesome.leaf;
+      color = Color(0XFF81c784);
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Flexible(
+            child: Divider(
+          endIndent: 6,
+        )),
+        Icon(
+          icon,
+          color: color,
+          size: 20,
+        ),
+        SizedBox(width: 4),
+        Text(
+          '${(currentNetEnergy / 1000).toStringAsFixed(2)} kW',
+          style: TextStyle(
+              fontSize: 20, fontWeight: FontWeight.w500, color: color),
+        ),
+        Flexible(
+            child: Divider(
+          indent: 6,
+        )),
+      ],
+    );
+  }
+
+  Row buildGauges() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: <Widget>[
+        Flexible(
+          flex: 50,
+          child: SimpleGauge(
+            maxValue: 4,
+            icon: FontAwesome.industry,
+            value: currentEnergyUsed,
+            invertColors: false,
+          ),
+        ),
+        Flexible(
+          flex: 1,
+          child: VerticalDivider(
+            indent: 16,
+            endIndent: 16,
+          ),
+        ),
+        Flexible(
+          flex: 50,
+          child: SimpleGauge(
+            icon: FontAwesome.leaf,
+            maxValue: 4,
+            value: currentEnergyGenerated,
+            invertColors: true,
+          ),
+        ),
+      ],
     );
   }
 
@@ -417,9 +552,19 @@ class _MyHomePageState extends State<MyHomePage> {
       elevation: 0,
       centerTitle: false,
       toolbarHeight: 60,
+      actions: [
+        //TODO SEND TO SETTING PAGE
+        IconButton(
+          icon: Icon(FontAwesome.cog),
+          onPressed: null,
+        )
+      ],
       title: Text(
         widget.title,
-        style: TextStyle(color: Color(0XFF3C6E71), fontSize: 30, fontWeight: FontWeight.bold),
+        style: TextStyle(
+            color: Color(0XFF3C6E71),
+            fontSize: 30,
+            fontWeight: FontWeight.bold),
       ),
     );
   }

@@ -5,11 +5,13 @@ class SectionHeader extends StatefulWidget {
   SectionHeader({
     Key key,
     this.title,
+    this.titleSize = 18,
     this.subTitle,
   }) : super(key: key);
 
   final String title;
   final String subTitle;
+  final double titleSize;
 
   @override
   _SectionHeaderState createState() => _SectionHeaderState();
@@ -32,7 +34,7 @@ class _SectionHeaderState extends State<SectionHeader> {
               widget.title,
               style: TextStyle(
                 color: Color(0XFF3C6E71),
-                fontSize: 18,
+                fontSize: widget.titleSize,
                 fontWeight: FontWeight.bold,
               ),
             ),
