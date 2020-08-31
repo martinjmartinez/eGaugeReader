@@ -7,11 +7,17 @@ class SectionHeader extends StatefulWidget {
     this.title,
     this.titleSize = 18,
     this.subTitle,
+    this.hideInfo = false,
+    this.hideDivider = false,
+    this.titleWeight = FontWeight.bold
   }) : super(key: key);
 
   final String title;
   final String subTitle;
   final double titleSize;
+  final bool hideInfo;
+  final bool hideDivider;
+  final FontWeight titleWeight;
 
   @override
   _SectionHeaderState createState() => _SectionHeaderState();
@@ -35,34 +41,35 @@ class _SectionHeaderState extends State<SectionHeader> {
               style: TextStyle(
                 color: Color(0XFF3C6E71),
                 fontSize: widget.titleSize,
-                fontWeight: FontWeight.bold,
+                fontWeight: widget.titleWeight,
               ),
             ),
-            IconButton(
-              constraints: BoxConstraints(maxWidth: 20, maxHeight: 20),
-              padding: EdgeInsets.only(bottom: 1, left: 3),
-              color: Colors.grey,
-              icon: Icon(Icons.info_outline),
-              iconSize: 20,
-              onPressed: () => {
-                setState(() {
-                  isInfoHidden = !isInfoHidden;
-                })
-              },
-            )
+            !widget.hideInfo
+                ? IconButton(
+                    constraints: BoxConstraints(maxWidth: 20, maxHeight: 20),
+                    padding: EdgeInsets.only(bottom: 1, left: 3),
+                    color: Colors.grey,
+                    icon: Icon(Icons.info_outline),
+                    iconSize: 20,
+                    onPressed: () => {
+                      setState(() {
+                        isInfoHidden = !isInfoHidden;
+                      })
+                    },
+                  )
+                : SizedBox()
           ],
         ),
-
         isInfoHidden
             ? SizedBox(
-          height: 0,
-        )
+                height: 0,
+              )
             : Text(
-          widget.subTitle,
-          style: TextStyle(
-              color: Color(0XFF3C6E71), fontSize: 13, height: 1.5),
-        ),
-        Divider(),
+                widget.subTitle,
+                style: TextStyle(
+                    color: Color(0XFF3C6E71), fontSize: 13, height: 1.5),
+              ),
+        !widget.hideDivider ? Divider() : SizedBox(),
       ],
     );
   }
