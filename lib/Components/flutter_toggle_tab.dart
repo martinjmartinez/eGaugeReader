@@ -10,12 +10,6 @@ import 'button_tab.dart';
 import '../Models/data_tab.dart';
 import 'helper.dart';
 
-///*********************************************
-/// Created by ukieTux on 22/04/2020 with ♥
-/// (>’_’)> email : ukie.tux@gmail.com
-/// github : https://www.github.com/ukieTux <(’_’<)
-///*********************************************
-/// © 2020 | All Right Reserved
 class FlutterToggleTab extends StatefulWidget {
   const FlutterToggleTab({
     Key key,

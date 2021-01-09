@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
-// ignore: must_be_immutable
 class CustomChip extends StatelessWidget {
   String label;
   IconData icon;

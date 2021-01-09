@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
-
+import 'package:rflutter_alert/rflutter_alert.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_icons/flutter_icons.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+
 import 'package:peta_app/Components/Chip.dart';
 import 'package:peta_app/Components/InfoTile.dart';
 import 'package:peta_app/Components/ProgressBar.dart';
@@ -13,11 +13,11 @@ import 'package:peta_app/Components/SectionHeader.dart';
 import 'package:peta_app/Components/SimpleGauge.dart';
 import 'package:peta_app/Components/flutter_toggle_tab.dart';
 import 'package:peta_app/Models/Settings.dart';
+import 'package:peta_app/Models/measurement.dart';
 import 'package:peta_app/Pages/SettingsPage.dart';
 import 'package:peta_app/Utils/Database.dart';
-import 'package:rflutter_alert/rflutter_alert.dart';
-import 'package:syncfusion_flutter_datepicker/datepicker.dart';
-import 'package:xml2json/xml2json.dart';
+import 'package:peta_app/Utils/egauge.dart';
+
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
@@ -30,6 +30,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   AppDataBase dataBase = AppDataBase();
   UserSettings userSettings;
+  Egauge egaugeService;
   Timer timerActualData;
   Timer timerReportData;
   Timer timerRangeData;
@@ -40,20 +41,18 @@ class _MyHomePageState extends State<MyHomePage> {
   double rangeEnergyUsed = 0;
   double prevRangeEnergyGenerated = 0;
   double prevRangeEnergyUsed = 0;
-  //
-  // double rangeGenerated = 0;
-  // double rangeUsed = 0;
 
   DateTime fromDateRange;
   DateTime toDateRange;
+  DateTimeRange lastPeriodDates;
   DateTime tempFromDateRange;
   DateTime tempToDateRange;
   DateTime billDate;
 
-  DateFormat formatter = DateFormat('dd/MM/yy');
+  DateFormat formatter = DateFormat('dd/MM/yy hh:mm');
   var numberFormat = new NumberFormat("#,###.0", "en_US");
 
-  _initDataBase() async {
+  _getInitialData() async {
     // await dataBase.deleteDb();
     await dataBase.initDB();
     await _fetchSettings();
@@ -64,26 +63,25 @@ class _MyHomePageState extends State<MyHomePage> {
       List<UserSettings> userSettingsList = await dataBase.getUserSettings();
 
       if (userSettingsList != null) {
-        setState(() {
-          userSettings = userSettingsList[0];
-        });
+        setState(() => userSettings = userSettingsList[0]);
 
         if (userSettings.domain != null && userSettings.domain.isNotEmpty) {
+          egaugeService = Egauge(domain: userSettings.domain);
+
           setState(() {
-            billDate = _getDateOfBill(userSettings.billDay);
+            billDate = userSettings.nextBillingDate();
             toDateRange = DateTime.now();
             fromDateRange = DateTime(
                 toDateRange.year, toDateRange.month, toDateRange.day, 0, 0, 0);
           });
 
-          _fetchActualData();
-          setRangeGenUsg(fromDateRange, toDateRange);
+          _fetchCurrentMeasurements();
+          _fetchMeasurementsByRange(fromDateRange, toDateRange);
 
           timerActualData = Timer.periodic(
-              Duration(seconds: 1), (Timer t) => _fetchActualData());
-          // timerReportData = Timer.periodic(Duration(seconds: 60), (Timer t) => _fetchDataSinceLastBill());
+              Duration(seconds: 1), (Timer t) => _fetchCurrentMeasurements());
           timerRangeData = Timer.periodic(Duration(seconds: 30),
-              (Timer t) => setRangeGenUsg(fromDateRange, toDateRange));
+              (Timer t) => _fetchMeasurementsByRange(fromDateRange, toDateRange));
         }
       }
     }
@@ -92,102 +90,32 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    // _klk();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initDataBase();
-      _fetchSettings();
-    });
+    _getInitialData();
   }
 
-  void _fetchActualData() async {
-    var url = 'https://${userSettings.domain}.egaug.es/cgi-bin/egauge?v1&inst';
-    var response = await http.get(url);
-    final myTransformer = Xml2Json();
-    myTransformer.parse(response.body);
-    var attributes = json.decode(myTransformer.toGData())['data']['r'] as List;
-    var used =
-        attributes.firstWhere((element) => element['did'] == '0')['i']['\$t'];
-    var generated =
-        attributes.firstWhere((element) => element['did'] == '2')['i']['\$t'];
+  void _fetchCurrentMeasurements() async {
+    Measurement measurement = await egaugeService.getCurrentMeasurement();
 
     setState(() {
-      currentEnergyUsed = double.parse(used);
-      currentEnergyGenerated = double.parse(generated);
+      currentEnergyUsed = measurement.consumption;
+      currentEnergyGenerated = measurement.generation;
     });
   }
 
-  DateTime _getDateOfBill(int day) {
-    DateTime now = DateTime.now();
-    int year = now.month == 1 ? now.year - 1 : now.year;
-    DateTime fromDateRange = now.day > day
-        ? DateTime(now.year, now.month, day, 12, 00, 0)
-        : DateTime(year, now.month - 1, day, 12, 00, 0);
-
-    return fromDateRange;
-  }
-
-  Future<Map<String, double>> _fetchRangeData(
-      [DateTime fromDate, DateTime toDate]) async {
-    int dayOfBill = 12; //todo get this from settings
-    DateTime now = DateTime.now();
-    int year = now.month == 1 ? now.year - 1 : now.year;
-    DateTime dateOfBill = now.day > dayOfBill
-        ? DateTime(now.year, now.month, dayOfBill, 12, 00, 0)
-        : DateTime(year, now.month - 1, dayOfBill, 12, 00, 0);
-
-    fromDate = fromDate != null ? fromDate : dateOfBill;
-    toDate = toDate != null ? toDate : now;
-    var actualUrl =
-        'https://${userSettings.domain}.egaug.es/cgi-bin/egauge-show?a&E&T=${(fromDate.millisecondsSinceEpoch / 1000).floor()},${(toDate.millisecondsSinceEpoch / 1000).floor()}';
-
-    var response = await http.get(actualUrl);
-
-    final myTransformer = Xml2Json();
-
-    myTransformer.parse(response.body);
-    var jsonData = myTransformer.toGData();
-    var fromReg = (json.decode(jsonData)['group']['data'][0] != null
-        ? json.decode(jsonData)['group']['data'][0]['r']['c']
-        : json.decode(jsonData)['group']['data']['r'][0]['c']) as List;
-    var toReg = (json.decode(jsonData)['group']['data'][1] != null
-        ? json.decode(jsonData)['group']['data'][1]['r']['c']
-        : json.decode(jsonData)['group']['data']['r'][1]['c']) as List;
-
-    var from = {
-      'use': int.parse(fromReg[0]['\$t']) / 3600000,
-      'gen': int.parse(fromReg[1]['\$t']) / 3600000
-    };
-    var to = {
-      'use': int.parse(toReg[0]['\$t']) / 3600000,
-      'gen': int.parse(toReg[1]['\$t']) / 3600000
-    };
-
-    final used = to['use'] - from['use'];
-    final gen = to['gen'] - from['gen'];
-
-    return {"gen": gen, "used": used};
-  }
-
-  void setRangeGenUsg([DateTime fromDate, DateTime toDate]) async {
-    var actualPeriod = await _fetchRangeData(fromDate, toDate);
+  void _fetchMeasurementsByRange(DateTime fromDate, DateTime toDate) async {
+    Measurement currentRange =
+        await egaugeService.getMeasurementByDateRange(fromDate, toDate);
     var dates = getPreviousPeriod(fromDate, toDate);
-    var prevPeriod = await _fetchRangeData(dates.start, dates.end);
+    Measurement previousRange =
+        await egaugeService.getMeasurementByDateRange(dates.start, dates.end);
 
     setState(() {
-      rangeEnergyUsed = actualPeriod['used'];
-      rangeEnergyGenerated = actualPeriod['gen'];
-      prevRangeEnergyUsed = prevPeriod['used'];
-      prevRangeEnergyGenerated = prevPeriod['gen'];
+      rangeEnergyUsed = currentRange.consumption;
+      rangeEnergyGenerated = currentRange.generation;
+      prevRangeEnergyUsed = previousRange.consumption;
+      prevRangeEnergyGenerated = previousRange.generation;
       fromDateRange = fromDate;
       toDateRange = toDate;
-    });
-  }
-
-  void setLastPeriodGenUsg([DateTime fromDate, DateTime toDate]) async {
-    var data = await _fetchRangeData(fromDate, toDate);
-    setState(() {
-      prevRangeEnergyUsed = data['used'];
-      prevRangeEnergyGenerated = data['gen'];
     });
   }
 
@@ -196,7 +124,6 @@ class _MyHomePageState extends State<MyHomePage> {
     DateTime start = args.value.startDate;
     DateTime end = (args.value.endDate ?? args.value.startDate);
     var isToday = end.difference(now).inDays;
-
     DateTime newStart = DateTime(start.year, start.month, start.day, 0, 0, 0);
     DateTime newEnd =
         isToday == 0 ? now : DateTime(end.year, end.month, end.day, 23, 59, 59);
@@ -207,14 +134,13 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  var alertStyle = AlertStyle(
-    animationType: AnimationType.fromTop,
-    isCloseButton: false,
-    animationDuration: Duration(milliseconds: 400),
-  );
   _openPopup(context) {
     Alert(
-        style: alertStyle,
+        style: AlertStyle(
+          animationType: AnimationType.fromTop,
+          isCloseButton: false,
+          animationDuration: Duration(milliseconds: 400),
+        ),
         context: context,
         title: "",
         content: Container(
@@ -223,7 +149,6 @@ class _MyHomePageState extends State<MyHomePage> {
           child: SfDateRangePicker(
             maxDate: DateTime.now(),
             initialSelectedRange: PickerDateRange(fromDateRange, toDateRange),
-//            minDate: DateTime.now(),//TODO DATE OF START READING
             initialDisplayDate: DateTime.now(),
             selectionColor: Color(0XFF3C6E71),
             endRangeSelectionColor: Color(0XFF3C6E71),
@@ -237,9 +162,9 @@ class _MyHomePageState extends State<MyHomePage> {
         buttons: [
           DialogButton(
             color: Colors.white,
-            onPressed: () => {Navigator.pop(context)},
+            onPressed: () => Navigator.pop(context),
             child: Text(
-              "Cancel",
+              "Cancelar",
               style: TextStyle(color: Color(0XFF3C6E71), fontSize: 15),
             ),
           ),
@@ -250,11 +175,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 fromDateRange = tempFromDateRange;
                 toDateRange = tempToDateRange;
               });
-              setRangeGenUsg(fromDateRange, toDateRange);
+              _fetchMeasurementsByRange(fromDateRange, toDateRange);
               Navigator.pop(context);
             },
             child: Text(
-              "Ok",
+              "Aceptar",
               style: TextStyle(color: Color(0XFF3C6E71), fontSize: 15),
             ),
           ),
@@ -264,7 +189,6 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     timerActualData?.cancel();
-    // timerReportData?.cancel();
     timerRangeData?.cancel();
 
     super.dispose();
@@ -286,14 +210,14 @@ class _MyHomePageState extends State<MyHomePage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              buildActualMesurements(),
-              buildCurrentNetEnergy(),
-              SizedBox(height: 16),
-              buildDateRanges(context),
-              SizedBox(height: 8),
-              buildGoals(context),
-              SizedBox(height: 16),
-              buildReportData(),
+              currentMeasurements(),
+              currentNetEnergy(),
+              const SizedBox(height: 16),
+              rangeSelector(context),
+              const SizedBox(height: 8),
+              totalMeasurements(context),
+              const SizedBox(height: 16),
+              rangeMeasurementsDetails(),
             ],
           ),
         ),
@@ -306,7 +230,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return _getPage();
   }
 
-  Widget buildReportData() {
+  Widget rangeMeasurementsDetails() {
     double netEnergy = rangeEnergyUsed - rangeEnergyGenerated;
     double fixPrice = userSettings.fix_101;
 
@@ -322,7 +246,7 @@ class _MyHomePageState extends State<MyHomePage> {
             title: 'Resumen por periodo',
             subTitle:
                 'Cuanto estoy generando/consumiendo en un rango de tiempo dado?'),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Table(
           border: TableBorder.symmetric(inside: BorderSide(width: 0.07)),
           children: [
@@ -362,9 +286,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 InfoTile(
                   value:
-                      "\$${numberFormat.format(_getEnergyPrice(rangeEnergyUsed - rangeEnergyGenerated))}",
+                      "\$${numberFormat.format(_getEnergyPrice(rangeEnergyUsed - rangeEnergyGenerated).abs())}",
                   nose: 'DOP',
-                  label: 'Pagar',
+                  label: _getEnergyPrice(rangeEnergyUsed - rangeEnergyGenerated) < 0 ?'Ahorrado' : 'Pagar',
                 ),
               ],
             ),
@@ -374,7 +298,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget buildDateRanges(BuildContext context) {
+  Widget rangeSelector(BuildContext context) {
     return Column(
       children: [
         FlutterToggleTab(
@@ -395,23 +319,22 @@ class _MyHomePageState extends State<MyHomePage> {
             var now = DateTime.now();
             switch (index) {
               case 3:
-                setRangeGenUsg(billDate, now);
+                _fetchMeasurementsByRange(billDate, now);
                 break;
               case 0:
-                setRangeGenUsg(
+                _fetchMeasurementsByRange(
                     DateTime(now.year, now.month, now.day, 0, 0, 0), now);
                 break;
               case 1:
                 var _firstDayOfTheWeek = now.subtract(
                     new Duration(days: now.weekday == 1 ? 0 : now.weekday));
-                setRangeGenUsg(
+                _fetchMeasurementsByRange(
                     DateTime(_firstDayOfTheWeek.year, _firstDayOfTheWeek.month,
                         _firstDayOfTheWeek.day, 0, 0, 0),
                     now);
                 break;
-
               case 2:
-                setRangeGenUsg(DateTime(now.year, now.month, 1, 0, 0, 0), now);
+                _fetchMeasurementsByRange(DateTime(now.year, now.month, 1, 0, 0, 0), now);
                 break;
               case 4:
                 _openPopup(context);
@@ -419,7 +342,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           },
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Text(
           "${formatter.format(fromDateRange)} - ${formatter.format(toDateRange)}",
           style: TextStyle(
@@ -436,20 +359,28 @@ class _MyHomePageState extends State<MyHomePage> {
     DateTime now = DateTime.now();
     if (diffDays == 0) {
       diffDays = 1;
-      if (now.isAfter(from)) {
+      if (now.isAfter(from) && now.difference(from).inDays != 0) {
         now = DateTime(0, 0, 0, 23, 59, 59);
       }
+    } else if (now.isAfter(to)) {
+      now = DateTime(0, 0, 0, 23, 59, 59);
     }
+
     DateTime newFrom = from.subtract(Duration(days: diffDays));
     newFrom = DateTime(newFrom.year, newFrom.month, newFrom.day, 0, 0, 0);
     DateTime newTo = to.subtract(Duration(days: diffDays));
     newTo = DateTime(
         newTo.year, newTo.month, newTo.day, now.hour, now.minute, now.second);
 
-    return DateTimeRange(start: newFrom, end: newTo);
+    setState(() {
+      lastPeriodDates = DateTimeRange(start: newFrom, end: newTo);
+    });
+    return lastPeriodDates;
   }
 
-  Container buildGoals(BuildContext context) {
+  Container totalMeasurements(BuildContext context) {
+    IconData icon;
+    Color color;
     var total = rangeEnergyUsed >= rangeEnergyGenerated
         ? rangeEnergyUsed
         : rangeEnergyGenerated;
@@ -458,6 +389,13 @@ class _MyHomePageState extends State<MyHomePage> {
     var delta = energyFlow - prevEnergyFlow;
     var percentage = delta / prevEnergyFlow * 100;
 
+    if (energyFlow < 0) {
+      icon = FontAwesome.industry;
+      color = Color(0XFFe57373);
+    } else {
+      icon = FontAwesome.leaf;
+      color = Color(0XFF81c784);
+    }
     return Container(
       child: Column(
         children: [
@@ -465,13 +403,22 @@ class _MyHomePageState extends State<MyHomePage> {
               title: 'Flujo de Energía',
               subTitle: 'Estoy generando más de lo que consumo?'),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text(
-              " ${energyFlow.toStringAsFixed(2)} kWh",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0XFF3C6E71),
-              ),
+            Row(
+              children: [
+                Icon(
+                  icon,
+                  color: color,
+                  size: 20,
+                ),
+                Text(
+                  " ${energyFlow.abs().toStringAsFixed(2)} kWh",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
             ),
             CustomChip(
               label: '${percentage.toStringAsFixed(2)}%',
@@ -481,13 +428,13 @@ class _MyHomePageState extends State<MyHomePage> {
           new ProgressBar(
             showValues: false,
             padding: 5,
-            barColor: Color(0XFFe57373),
+            barColor: Color(0XFF81c784),
             barHeight: 15,
             barWidth: MediaQuery.of(context).size.width,
-            numerator: rangeEnergyUsed,
+            numerator: rangeEnergyGenerated,
             showRemainder: false,
-            denominator: total, //TODO META CONSUMO
-            title: 'Usada',
+            denominator: total,
+            title: 'Generada',
             dialogTextStyle: new TextStyle(
                 fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
             titleStyle: new TextStyle(
@@ -499,13 +446,13 @@ class _MyHomePageState extends State<MyHomePage> {
           new ProgressBar(
             showValues: false,
             padding: 5,
-            barColor: Color(0XFF81c784),
+            barColor: Color(0XFFe57373),
             barHeight: 15,
             barWidth: MediaQuery.of(context).size.width,
-            numerator: rangeEnergyGenerated,
+            numerator: rangeEnergyUsed,
             showRemainder: false,
-            denominator: total, //TODO META Generacion
-            title: 'Generada',
+            denominator: total,
+            title: 'Usada',
             dialogTextStyle: new TextStyle(
                 fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
             titleStyle: new TextStyle(
@@ -519,7 +466,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  IntrinsicHeight buildActualMesurements() {
+  IntrinsicHeight currentMeasurements() {
     return IntrinsicHeight(
       child: Column(
         children: [
@@ -532,7 +479,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Row buildCurrentNetEnergy() {
+  Row currentNetEnergy() {
     double currentNetEnergy;
     IconData icon;
     Color color;
@@ -558,7 +505,7 @@ class _MyHomePageState extends State<MyHomePage> {
           color: color,
           size: 20,
         ),
-        SizedBox(width: 4),
+        const SizedBox(width: 4),
         Text(
           '${(currentNetEnergy / 1000).toStringAsFixed(2)} kW',
           style: TextStyle(
@@ -602,7 +549,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         Flexible(
           flex: 1,
-          child: VerticalDivider(
+          child: const VerticalDivider(
             indent: 16,
             endIndent: 16,
           ),
@@ -645,15 +592,15 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _showSettingPage() async {
-    var navigatonResult = await Navigator.push(
+    var navigationResult = await Navigator.push(
       context,
       MaterialPageRoute(
           builder: (context) =>
               SettingsPage(userSettings: userSettings, dataBase: dataBase)),
     );
 
-    if (navigatonResult == 'changed') {
-      _initDataBase();
+    if (navigationResult == 'changed') {
+      _getInitialData();
     }
   }
 }

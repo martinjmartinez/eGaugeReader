@@ -26,17 +26,38 @@ class UserSettings {
     return {
       'id': id,
       'domain': domain,
-      'billDay' : billDay,
-      'fix_0_100' : fix_0_100,
-      'fix_101' : fix_101,
-      'range_0_200' : range_0_200,
-      'range_201_300' : range_201_300,
-      'range_301_700' : range_301_700,
-      'range_701' : range_701
+      'billDay': billDay,
+      'fix_0_100': fix_0_100,
+      'fix_101': fix_101,
+      'range_0_200': range_0_200,
+      'range_201_300': range_201_300,
+      'range_301_700': range_301_700,
+      'range_701': range_701
     };
   }
 
-  static Future<List<UserSettings>> toList(List<Map<String, dynamic>> maps) async {
+  DateTime nextBillingDate() {
+    DateTime now = DateTime.now();
+    int year = now.year;
+    int month = now.month;
+
+    if (now.month != 1) {
+      if (now.day > billDay) {
+        month = now.month - 1;
+      }
+    } else {
+      year = now.year - 1;
+
+      if (now.day < billDay) {
+        month = 12;
+      }
+    }
+
+    return DateTime(year, month, billDay, 12, 00, 0);;
+  }
+
+  static Future<List<UserSettings>> toList(
+      List<Map<String, dynamic>> maps) async {
     return List.generate(maps.length, (i) {
       return UserSettings(
         id: maps[i]['id'],
@@ -50,6 +71,5 @@ class UserSettings {
         range_701: maps[i]['range_701'],
       );
     });
-
   }
 }
