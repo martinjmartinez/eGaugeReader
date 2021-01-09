@@ -56,7 +56,7 @@ class _SettingsPageState extends State<SettingsPage> {
         child: Column(
           children: [
             SectionHeader(title: "Generales", hideInfo: true),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -72,9 +72,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             SectionHeader(title: "Facturación", hideInfo: true),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             SectionHeader(
               title: 'Cargo fijo',
               hideInfo: true,
@@ -95,7 +95,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             SectionHeader(
               title: 'Cargo por energía',
               hideInfo: true,
@@ -134,7 +134,7 @@ class _SettingsPageState extends State<SettingsPage> {
           hideDivider: true,
           titleWeight: FontWeight.w500,
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         TextFormField(
           initialValue: domain,
           decoration:
@@ -159,7 +159,7 @@ class _SettingsPageState extends State<SettingsPage> {
           hideDivider: true,
           titleWeight: FontWeight.w500,
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         TextFormField(
           initialValue: oldValuer?.toStringAsFixed(2),
           keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -185,7 +185,7 @@ class _SettingsPageState extends State<SettingsPage> {
           hideDivider: true,
           titleWeight: FontWeight.w500,
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         TextFormField(
           initialValue: fix_0_100?.toStringAsFixed(2),
           keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -211,7 +211,7 @@ class _SettingsPageState extends State<SettingsPage> {
           hideDivider: true,
           titleWeight: FontWeight.w500,
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         TextFormField(
           initialValue: fix_101?.toStringAsFixed(2),
           keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -237,7 +237,7 @@ class _SettingsPageState extends State<SettingsPage> {
           hideDivider: true,
           titleWeight: FontWeight.w500,
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         TextFormField(
           initialValue: range_0_200?.toStringAsFixed(2),
           keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -263,7 +263,7 @@ class _SettingsPageState extends State<SettingsPage> {
           hideDivider: true,
           titleWeight: FontWeight.w500,
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         TextFormField(
           initialValue: range_201_300?.toStringAsFixed(2),
           keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -289,7 +289,7 @@ class _SettingsPageState extends State<SettingsPage> {
           hideDivider: true,
           titleWeight: FontWeight.w500,
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         TextFormField(
           initialValue: range_301_700?.toStringAsFixed(2),
           keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -315,7 +315,7 @@ class _SettingsPageState extends State<SettingsPage> {
           hideDivider: true,
           titleWeight: FontWeight.w500,
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         TextFormField(
           initialValue: range_701?.toStringAsFixed(2),
           keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -341,7 +341,7 @@ class _SettingsPageState extends State<SettingsPage> {
           hideDivider: true,
           titleWeight: FontWeight.w500,
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Row(
           children: [
             Text("Cada",
