@@ -16,7 +16,7 @@ class AppDataBase {
   }
 
   Future<List<UserSettings>> getUserSettings() async {
-    if(_db != null) {
+    if (_db != null) {
       List<Map<String, dynamic>> maps = await _db.query('settings');
 
       return await UserSettings.toList(maps);

@@ -18,7 +18,6 @@ import 'package:peta_app/Pages/SettingsPage.dart';
 import 'package:peta_app/Utils/Database.dart';
 import 'package:peta_app/Utils/egauge.dart';
 
-
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
   final String title;
@@ -50,7 +49,7 @@ class _MyHomePageState extends State<MyHomePage> {
   DateTime billDate;
 
   DateFormat formatter = DateFormat('dd/MM/yy hh:mm');
-  var numberFormat = new NumberFormat("#,###.0", "en_US");
+  final numberFormat = new NumberFormat("#,###.0", "en_US");
 
   _getInitialData() async {
     // await dataBase.deleteDb();
@@ -60,7 +59,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   _fetchSettings() async {
     if (dataBase != null) {
-      List<UserSettings> userSettingsList = await dataBase.getUserSettings();
+      final List<UserSettings> userSettingsList =
+          await dataBase.getUserSettings();
 
       if (userSettingsList != null) {
         setState(() => userSettings = userSettingsList[0]);
@@ -80,8 +80,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
           timerActualData = Timer.periodic(
               Duration(seconds: 1), (Timer t) => _fetchCurrentMeasurements());
-          timerRangeData = Timer.periodic(Duration(seconds: 30),
-              (Timer t) => _fetchMeasurementsByRange(fromDateRange, toDateRange));
+          timerRangeData = Timer.periodic(
+              Duration(seconds: 30),
+              (Timer t) =>
+                  _fetchMeasurementsByRange(fromDateRange, toDateRange));
         }
       }
     }
@@ -94,7 +96,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _fetchCurrentMeasurements() async {
-    Measurement measurement = await egaugeService.getCurrentMeasurement();
+    final measurement = await egaugeService.getCurrentMeasurement();
 
     setState(() {
       currentEnergyUsed = measurement.consumption;
@@ -103,10 +105,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _fetchMeasurementsByRange(DateTime fromDate, DateTime toDate) async {
-    Measurement currentRange =
+    final currentRange =
         await egaugeService.getMeasurementByDateRange(fromDate, toDate);
-    var dates = getPreviousPeriod(fromDate, toDate);
-    Measurement previousRange =
+    final dates = getPreviousPeriod(fromDate, toDate);
+    final previousRange =
         await egaugeService.getMeasurementByDateRange(dates.start, dates.end);
 
     setState(() {
@@ -120,12 +122,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _onSelectionChanged(DateRangePickerSelectionChangedArgs args) {
-    DateTime now = DateTime.now();
-    DateTime start = args.value.startDate;
-    DateTime end = (args.value.endDate ?? args.value.startDate);
-    var isToday = end.difference(now).inDays;
-    DateTime newStart = DateTime(start.year, start.month, start.day, 0, 0, 0);
-    DateTime newEnd =
+    final now = DateTime.now();
+    final start = args.value.startDate;
+    final end = (args.value.endDate ?? args.value.startDate);
+    final isToday = end.difference(now).inDays;
+    final newStart = DateTime(start.year, start.month, start.day, 0, 0, 0);
+    final newEnd =
         isToday == 0 ? now : DateTime(end.year, end.month, end.day, 23, 59, 59);
 
     setState(() {
@@ -231,7 +233,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget rangeMeasurementsDetails() {
-    double netEnergy = rangeEnergyUsed - rangeEnergyGenerated;
+    final netEnergy = rangeEnergyUsed - rangeEnergyGenerated;
     double fixPrice = userSettings.fix_101;
 
     if (netEnergy >= 101) {
@@ -288,7 +290,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   value:
                       "\$${numberFormat.format(_getEnergyPrice(rangeEnergyUsed - rangeEnergyGenerated).abs())}",
                   nose: 'DOP',
-                  label: _getEnergyPrice(rangeEnergyUsed - rangeEnergyGenerated) < 0 ?'Ahorrado' : 'Pagar',
+                  label:
+                      _getEnergyPrice(rangeEnergyUsed - rangeEnergyGenerated) <
+                              0
+                          ? 'Ahorrado'
+                          : 'Pagar',
                 ),
               ],
             ),
@@ -334,7 +340,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     now);
                 break;
               case 2:
-                _fetchMeasurementsByRange(DateTime(now.year, now.month, 1, 0, 0, 0), now);
+                _fetchMeasurementsByRange(
+                    DateTime(now.year, now.month, 1, 0, 0, 0), now);
                 break;
               case 4:
                 _openPopup(context);
@@ -375,19 +382,20 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       lastPeriodDates = DateTimeRange(start: newFrom, end: newTo);
     });
+
     return lastPeriodDates;
   }
 
   Container totalMeasurements(BuildContext context) {
     IconData icon;
     Color color;
-    var total = rangeEnergyUsed >= rangeEnergyGenerated
+    final total = rangeEnergyUsed >= rangeEnergyGenerated
         ? rangeEnergyUsed
         : rangeEnergyGenerated;
-    var energyFlow = rangeEnergyGenerated - rangeEnergyUsed;
-    var prevEnergyFlow = prevRangeEnergyGenerated - prevRangeEnergyUsed;
-    var delta = energyFlow - prevEnergyFlow;
-    var percentage = delta / prevEnergyFlow * 100;
+    final energyFlow = rangeEnergyGenerated - rangeEnergyUsed;
+    final prevEnergyFlow = prevRangeEnergyGenerated - prevRangeEnergyUsed;
+    final delta = energyFlow - prevEnergyFlow;
+    final percentage = delta / prevEnergyFlow * 100;
 
     if (energyFlow < 0) {
       icon = FontAwesome.industry;

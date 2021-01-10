@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 class SectionHeader extends StatefulWidget {
-  SectionHeader({
-    Key key,
-    this.title,
-    this.titleSize = 18,
-    this.subTitle,
-    this.hideInfo = false,
-    this.hideDivider = false,
-    this.titleWeight = FontWeight.bold
-  }) : super(key: key);
+  SectionHeader(
+      {Key key,
+      this.title,
+      this.titleSize = 18,
+      this.subTitle,
+      this.hideInfo = false,
+      this.hideDivider = false,
+      this.titleWeight = FontWeight.bold})
+      : super(key: key);
 
   final String title;
   final String subTitle;

@@ -10,30 +10,30 @@ class Egauge {
   Egauge({this.domain});
 
   getMeasurementByDateRange(DateTime fromDate, DateTime toDate) async {
-    var fromDateinMillis = (fromDate.millisecondsSinceEpoch / 1000).floor();
-    var toDateinMillis = (toDate.millisecondsSinceEpoch / 1000).floor();
-    var actualUrl =
+    final fromDateinMillis = (fromDate.millisecondsSinceEpoch / 1000).floor();
+    final toDateinMillis = (toDate.millisecondsSinceEpoch / 1000).floor();
+    final actualUrl =
         'https://$domain.egaug.es/cgi-bin/egauge-show?a&E&T=$fromDateinMillis,$toDateinMillis';
 
-    var response = await http.get(actualUrl);
+    final response = await http.get(actualUrl);
 
     final myTransformer = Xml2Json();
 
     myTransformer.parse(response.body);
 
-    var jsonData = myTransformer.toGData();
-    var fromReg = (json.decode(jsonData)['group']['data'][0] != null
+    final jsonData = myTransformer.toGData();
+    final fromReg = (json.decode(jsonData)['group']['data'][0] != null
         ? json.decode(jsonData)['group']['data'][0]['r']['c']
         : json.decode(jsonData)['group']['data']['r'][0]['c']) as List;
-    var toReg = (json.decode(jsonData)['group']['data'][1] != null
+    final toReg = (json.decode(jsonData)['group']['data'][1] != null
         ? json.decode(jsonData)['group']['data'][1]['r']['c']
         : json.decode(jsonData)['group']['data']['r'][1]['c']) as List;
 
-    var from = {
+    final from = {
       'use': int.parse(fromReg[0]['\$t']) / 3600000,
       'gen': int.parse(fromReg[1]['\$t']) / 3600000
     };
-    var to = {
+    final to = {
       'use': int.parse(toReg[0]['\$t']) / 3600000,
       'gen': int.parse(toReg[1]['\$t']) / 3600000
     };
@@ -45,16 +45,16 @@ class Egauge {
   }
 
   Future<Measurement> getCurrentMeasurement() async {
-    var url = 'https://$domain.egaug.es/cgi-bin/egauge?v1&inst';
-    var response = await http.get(url);
+    final url = 'https://$domain.egaug.es/cgi-bin/egauge?v1&inst';
+    final response = await http.get(url);
     final myTransformer = Xml2Json();
 
     myTransformer.parse(response.body);
 
-    var attributes = json.decode(myTransformer.toGData())['data']['r'] as List;
+    final attributes = json.decode(myTransformer.toGData())['data']['r'] as List;
     var used = double.parse(
         attributes.firstWhere((element) => element['did'] == '0')['i']['\$t']);
-    var generated = double.parse(
+    final generated = double.parse(
         attributes.firstWhere((element) => element['did'] == '2')['i']['\$t']);
 
     used = generated - used;
