@@ -9,19 +9,11 @@ import 'package:peta_app/Pages/HomePage.dart';
 import 'package:peta_app/Utils/Database.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 
-class SettingsPage extends StatefulWidget {
-  UserSettings userSettings;
-  AppDataBase dataBase;
+class SettingsPage extends StatelessWidget {
+  final UserSettings userSettings;
+  final AppDataBase dataBase;
+
   bool firstRun;
-
-  SettingsPage({this.userSettings, this.dataBase, this.firstRun = false});
-
-  @override
-  _SettingsPageState createState() => _SettingsPageState();
-}
-
-class _SettingsPageState extends State<SettingsPage> {
-  UserSettings initialData;
   String domain;
   int billDay;
   double fix_0_100;
@@ -31,26 +23,345 @@ class _SettingsPageState extends State<SettingsPage> {
   double range_301_700;
   double range_701;
 
-  @override
-  void initState() {
-    super.initState();
-
-    initialData = widget.userSettings;
-    billDay = initialData?.billDay;
-    domain = initialData?.domain;
-    fix_101 = initialData?.fix_101;
-    fix_0_100 = initialData?.fix_0_100;
-    range_0_200 = initialData?.range_0_200;
-    range_201_300 = initialData?.range_201_300;
-    range_301_700 = initialData?.range_301_700;
-    range_701 = initialData?.range_701;
+  SettingsPage({this.userSettings, this.dataBase, this.firstRun = false}) {
+    billDay = userSettings?.billDay;
+    domain = userSettings?.domain;
+    fix_101 = userSettings?.fix_101;
+    fix_0_100 = userSettings?.fix_0_100;
+    range_0_200 = userSettings?.range_0_200;
+    range_201_300 = userSettings?.range_201_300;
+    range_301_700 = userSettings?.range_301_700;
+    range_701 = userSettings?.range_701;
   }
 
-  @override
+  Widget buildTextField(String title, String hint) {
+    return Column(
+      children: [
+        SectionHeader(
+          title: title,
+          hideInfo: true,
+          titleSize: 15,
+          hideDivider: true,
+          titleWeight: FontWeight.w500,
+        ),
+        const SizedBox(height: 4),
+        TextFormField(
+          initialValue: domain,
+          decoration:
+              InputDecoration(hintText: hint, border: OutlineInputBorder()),
+          onChanged: (value) {
+            domain = value;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget buildNumberField(String title, String hint, double oldValuer) {
+    return Column(
+      children: [
+        SectionHeader(
+          title: title,
+          hideInfo: true,
+          titleSize: 15,
+          hideDivider: true,
+          titleWeight: FontWeight.w500,
+        ),
+        const SizedBox(height: 4),
+        TextFormField(
+          initialValue: oldValuer?.toStringAsFixed(2),
+          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          decoration:
+              InputDecoration(hintText: hint, border: OutlineInputBorder()),
+          onChanged: (value) {
+            oldValuer = double.parse(value);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget fix1Field(String title, String hint) {
+    return Column(
+      children: [
+        SectionHeader(
+          title: title,
+          hideInfo: true,
+          titleSize: 15,
+          hideDivider: true,
+          titleWeight: FontWeight.w500,
+        ),
+        const SizedBox(height: 4),
+        TextFormField(
+          initialValue: fix_0_100?.toStringAsFixed(2),
+          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          decoration:
+              InputDecoration(hintText: hint, border: OutlineInputBorder()),
+          onChanged: (value) {
+            fix_0_100 = double.parse(value);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget fix2Field(String title, String hint) {
+    return Column(
+      children: [
+        SectionHeader(
+          title: title,
+          hideInfo: true,
+          titleSize: 15,
+          hideDivider: true,
+          titleWeight: FontWeight.w500,
+        ),
+        const SizedBox(height: 4),
+        TextFormField(
+          initialValue: fix_101?.toStringAsFixed(2),
+          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          decoration:
+              InputDecoration(hintText: hint, border: OutlineInputBorder()),
+          onChanged: (value) {
+            fix_101 = double.parse(value);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget range1Field(String title, String hint) {
+    return Column(
+      children: [
+        SectionHeader(
+          title: title,
+          hideInfo: true,
+          titleSize: 15,
+          hideDivider: true,
+          titleWeight: FontWeight.w500,
+        ),
+        const SizedBox(height: 4),
+        TextFormField(
+          initialValue: range_0_200?.toStringAsFixed(2),
+          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          decoration:
+              InputDecoration(hintText: hint, border: OutlineInputBorder()),
+          onChanged: (value) {
+            range_0_200 = double.parse(value);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget range2Field(String title, String hint) {
+    return Column(
+      children: [
+        SectionHeader(
+          title: title,
+          hideInfo: true,
+          titleSize: 15,
+          hideDivider: true,
+          titleWeight: FontWeight.w500,
+        ),
+        const SizedBox(height: 4),
+        TextFormField(
+          initialValue: range_201_300?.toStringAsFixed(2),
+          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          decoration:
+              InputDecoration(hintText: hint, border: OutlineInputBorder()),
+          onChanged: (value) {
+            range_201_300 = double.parse(value);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget range3Field(String title, String hint) {
+    return Column(
+      children: [
+        SectionHeader(
+          title: title,
+          hideInfo: true,
+          titleSize: 15,
+          hideDivider: true,
+          titleWeight: FontWeight.w500,
+        ),
+        const SizedBox(height: 4),
+        TextFormField(
+          initialValue: range_301_700?.toStringAsFixed(2),
+          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          decoration:
+              InputDecoration(hintText: hint, border: OutlineInputBorder()),
+          onChanged: (value) {
+            range_301_700 = double.parse(value);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget range4Field(String title, String hint) {
+    return Column(
+      children: [
+        SectionHeader(
+          title: title,
+          hideInfo: true,
+          titleSize: 15,
+          hideDivider: true,
+          titleWeight: FontWeight.w500,
+        ),
+        const SizedBox(height: 4),
+        TextFormField(
+          initialValue: range_701?.toStringAsFixed(2),
+          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          decoration:
+              InputDecoration(hintText: hint, border: OutlineInputBorder()),
+          onChanged: (value) {
+            range_701 = double.parse(value);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget buildNumberSelection(int day) {
+    return Column(
+      children: [
+        SectionHeader(
+          title: "Inicio de facturación",
+          hideInfo: true,
+          titleSize: 15,
+          hideDivider: true,
+          titleWeight: FontWeight.w500,
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Text("Cada",
+                style: TextStyle(color: Color(0XFF3C6E71), fontSize: 15)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: DropdownButton<int>(
+                value: billDay,
+                items: Iterable<int>.generate(32)
+                    .toList()
+                    .getRange(1, 32)
+                    .map((int value) {
+                  return new DropdownMenuItem<int>(
+                    value: value,
+                    child: new Text(value.toString()),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  billDay = value;
+                },
+              ),
+            ),
+            Text(
+              "del mes.",
+              style: TextStyle(color: Color(0XFF3C6E71), fontSize: 15),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  _openPopup(context) {
+    Alert(
+        style: AlertStyle(
+          animationType: AnimationType.fromTop,
+          isCloseButton: false,
+          animationDuration: Duration(milliseconds: 400),
+        ),
+        context: context,
+        title: "",
+        content: Container(
+          width: 200,
+          height: 70,
+          child: Text(
+            'Los ajustes no puedes estar vacios o ser 0.',
+            style: TextStyle(fontSize: 14),
+          ),
+        ),
+        buttons: [
+          DialogButton(
+            color: Colors.white,
+            onPressed: () => {Navigator.pop(context)},
+            child: Text(
+              "ok",
+              style: TextStyle(color: Color(0XFF3C6E71), fontSize: 15),
+            ),
+          ),
+        ]).show();
+  }
+
+  _saveOrCreateSettings(context) async {
+    var newUser = UserSettings(
+        id: 1,
+        domain: domain,
+        billDay: billDay,
+        fix_0_100: fix_0_100,
+        fix_101: fix_101,
+        range_0_200: range_0_200,
+        range_201_300: range_201_300,
+        range_301_700: range_301_700,
+        range_701: range_701);
+
+    if (newUser.domain != null &&
+        newUser.domain?.isNotEmpty &&
+        newUser.fix_0_100 > 0 &&
+        newUser.fix_101 > 0 &&
+        newUser.range_0_200 > 0 &&
+        newUser.range_201_300 > 0 &&
+        newUser.range_301_700 > 0 &&
+        newUser.range_701 > 0) {
+      await dataBase.updateSettings(newUser);
+      if (firstRun) {
+        Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+                builder: (context) => MyHomePage(title: 'DashBoard')),
+            ModalRoute.withName("/Home"));
+      } else {
+        Navigator.pop(context, 'changed');
+      }
+    } else {
+      _openPopup(context);
+    }
+  }
+
+  AppBar buildAppBar(context) {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      leading: BackButton(
+        color: Color(0XFF3C6E71),
+      ),
+      centerTitle: false,
+      toolbarHeight: 60,
+      actions: [
+        IconButton(
+          icon: Icon(FontAwesome.save),
+          color: Color(0XFF3C6E71),
+          onPressed: () => _saveOrCreateSettings(context),
+        )
+      ],
+      title: Text(
+        'Ajustes',
+        style: TextStyle(
+            color: Color(0XFF3C6E71),
+            fontSize: 30,
+            fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: buildAppBar(),
+      appBar: buildAppBar(context),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.0),
         child: Column(
@@ -66,7 +377,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   )),
               child: Column(
                 children: [
-                  buildtextField("Dominio", "egaugeXXXXX"),
+                  buildTextField("Dominio", "egaugeXXXXX"),
                   SizedBox(height: 16),
                   buildNumberSelection(billDay),
                 ],
@@ -120,346 +431,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget buildtextField(String title, String hint) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: domain,
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            setState(() {
-              domain = value;
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget buildNumberField(String title, String hint, double oldValuer) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: oldValuer?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            setState(() {
-              oldValuer = double.parse(value);
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget fix1Field(String title, String hint) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: fix_0_100?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            setState(() {
-              fix_0_100 = double.parse(value);
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget fix2Field(String title, String hint) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: fix_101?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            setState(() {
-              fix_101 = double.parse(value);
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget range1Field(String title, String hint) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: range_0_200?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            setState(() {
-              range_0_200 = double.parse(value);
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget range2Field(String title, String hint) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: range_201_300?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            setState(() {
-              range_201_300 = double.parse(value);
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget range3Field(String title, String hint) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: range_301_700?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            setState(() {
-              range_301_700 = double.parse(value);
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget range4Field(String title, String hint) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: range_701?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            setState(() {
-              range_701 = double.parse(value);
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget buildNumberSelection(int day) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: "Inicio de facturación",
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Text("Cada",
-                style: TextStyle(color: Color(0XFF3C6E71), fontSize: 15)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: DropdownButton<int>(
-                value: billDay,
-                items: Iterable<int>.generate(32)
-                    .toList()
-                    .getRange(1, 32)
-                    .map((int value) {
-                  return new DropdownMenuItem<int>(
-                    value: value,
-                    child: new Text(value.toString()),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    billDay = value;
-                  });
-                },
-              ),
-            ),
-            Text(
-              "del mes.",
-              style: TextStyle(color: Color(0XFF3C6E71), fontSize: 15),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  var alertStyle = AlertStyle(
-    animationType: AnimationType.fromTop,
-    isCloseButton: false,
-    animationDuration: Duration(milliseconds: 400),
-  );
-  _openPopup(context) {
-    Alert(
-        style: alertStyle,
-        context: context,
-        title: "",
-        content: Container(
-          width: 200,
-          height: 70,
-          child: Text(
-            'Los ajustes no puedes estar vacios o ser 0.',
-            style: TextStyle(fontSize: 14),
-          ),
-        ),
-        buttons: [
-          DialogButton(
-            color: Colors.white,
-            onPressed: () => {Navigator.pop(context)},
-            child: Text(
-              "ok",
-              style: TextStyle(color: Color(0XFF3C6E71), fontSize: 15),
-            ),
-          ),
-        ]).show();
-  }
-
-  AppBar buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      leading: BackButton(
-        color: Color(0XFF3C6E71),
-      ),
-      centerTitle: false,
-      toolbarHeight: 60,
-      actions: [
-        IconButton(
-          icon: Icon(FontAwesome.save),
-          color: Color(0XFF3C6E71),
-          onPressed: () async {
-            var newUser = UserSettings(
-                id: 1,
-                domain: domain,
-                billDay: billDay,
-                fix_0_100: fix_0_100,
-                fix_101: fix_101,
-                range_0_200: range_0_200,
-                range_201_300: range_201_300,
-                range_301_700: range_301_700,
-                range_701: range_701);
-            if (newUser.domain != null &&
-                newUser.domain?.isNotEmpty &&
-                newUser.fix_0_100 > 0 &&
-                newUser.fix_101 > 0 &&
-                newUser.range_0_200 > 0 &&
-                newUser.range_201_300 > 0 &&
-                newUser.range_301_700 > 0 &&
-                newUser.range_701 > 0) {
-              await widget.dataBase.updateSettings(newUser);
-              if (widget.firstRun) {
-                Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => MyHomePage(title: 'DashBoard')),
-                    ModalRoute.withName("/Home"));
-              } else {
-                Navigator.pop(context, 'changed');
-              }
-            } else {
-              _openPopup(context);
-            }
-          },
-        )
-      ],
-      title: Text(
-        'Ajustes',
-        style: TextStyle(
-            color: Color(0XFF3C6E71),
-            fontSize: 30,
-            fontWeight: FontWeight.bold),
       ),
     );
   }
