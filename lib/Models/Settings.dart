@@ -54,7 +54,6 @@ class UserSettings {
     }
 
     return DateTime(year, month, billDay, 12, 00, 0);
-    ;
   }
 
   static Future<List<UserSettings>> toList(

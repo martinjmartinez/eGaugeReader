@@ -7,13 +7,22 @@ import 'package:peta_app/Components/SectionHeader.dart';
 import 'package:peta_app/Models/Settings.dart';
 import 'package:peta_app/Pages/HomePage.dart';
 import 'package:peta_app/Utils/Database.dart';
-import 'package:rflutter_alert/rflutter_alert.dart';
+import 'package:peta_app/Utils/validationMixins.dart';
 
-class SettingsPage extends StatelessWidget {
-  final UserSettings userSettings;
-  final AppDataBase dataBase;
-
+class SettingsPage extends StatefulWidget {
+  UserSettings userSettings;
+  AppDataBase dataBase;
   bool firstRun;
+
+  SettingsPage({this.userSettings, this.dataBase, this.firstRun = false});
+
+  @override
+  _SettingsPageState createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> with ValidationMixins {
+  GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  UserSettings initialData;
   String domain;
   int billDay;
   double fix_0_100;
@@ -23,185 +32,196 @@ class SettingsPage extends StatelessWidget {
   double range_301_700;
   double range_701;
 
-  SettingsPage({this.userSettings, this.dataBase, this.firstRun = false}) {
-    billDay = userSettings?.billDay;
-    domain = userSettings?.domain;
-    fix_101 = userSettings?.fix_101;
-    fix_0_100 = userSettings?.fix_0_100;
-    range_0_200 = userSettings?.range_0_200;
-    range_201_300 = userSettings?.range_201_300;
-    range_301_700 = userSettings?.range_301_700;
-    range_701 = userSettings?.range_701;
+  @override
+  void initState() {
+    super.initState();
+
+    initialData = widget.userSettings;
+    billDay = initialData?.billDay;
+    domain = initialData?.domain;
+    fix_0_100 = initialData?.fix_0_100;
+    fix_101 = initialData?.fix_101;
+    range_0_200 = initialData?.range_0_200;
+    range_201_300 = initialData?.range_201_300;
+    range_301_700 = initialData?.range_301_700;
+    range_701 = initialData?.range_701;
   }
 
-  Widget buildTextField(String title, String hint) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: domain,
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            domain = value;
-          },
-        ),
-      ],
+  Widget basicInformation() {
+    return Container(
+      padding: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: Color(0XFF3C6E71),
+          )),
+      child: Column(
+        children: [
+          buildInputField("Dominio", domainInputField()),
+          SizedBox(height: 16),
+          buildNumberSelection(billDay),
+        ],
+      ),
     );
   }
 
-  Widget buildNumberField(String title, String hint, double oldValuer) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: oldValuer?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            oldValuer = double.parse(value);
-          },
-        ),
-      ],
+  Widget fixedPriceInformation() {
+    return Container(
+      padding: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: Color(0XFF3C6E71),
+          )),
+      child: Column(
+        children: [
+          buildInputField("De 0 hasta 100 kWh", firstFixedPriceRangeInputField(),),
+          buildInputField("Mayor a 101 kWh", secondFixedPriceRangeInputField(),),
+
+          // fix1Field("De 0 hasta 100 kWh", "37.95"),
+          // fix2Field("Mayor a 101 kWh", "137.25"),
+        ],
+      ),
     );
   }
 
-  Widget fix1Field(String title, String hint) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: fix_0_100?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            fix_0_100 = double.parse(value);
-          },
-        ),
-      ],
+  Widget priceInformation() {
+    return Container(
+      padding: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: Color(0XFF3C6E71),
+          )),
+      child: Column(
+        children: [
+          buildInputField("De 0 hasta 200 kWh", firstPriceRangeInputField()),
+          buildInputField("De 201 a 300 kWh", secondPriceRangeInputField()),
+          buildInputField("De 301 a 700 kWh", thirdPriceRangeInputField()),
+          buildInputField("Mas de 700 kWh", fourthPriceRangeInputField()),
+        ],
+      ),
     );
   }
 
-  Widget fix2Field(String title, String hint) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: buildAppBar(),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16.0),
+        child: Form(
+          key: formKey,
+          child: Column(
+            children: [
+              SectionHeader(title: "Generales", hideInfo: true),
+              const SizedBox(height: 8),
+              basicInformation(),
+              const SizedBox(height: 16),
+              SectionHeader(title: "Facturación", hideInfo: true),
+              const SizedBox(height: 8),
+              SectionHeader(
+                title: 'Cargo fijo',
+                hideInfo: true,
+                titleSize: 16,
+                hideDivider: false,
+              ),
+              fixedPriceInformation(),
+              const SizedBox(height: 16),
+              SectionHeader(
+                title: 'Cargo por energía',
+                hideInfo: true,
+                titleSize: 16,
+                hideDivider: false,
+              ),
+              priceInformation(),
+            ],
+          ),
         ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: fix_101?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            fix_101 = double.parse(value);
-          },
-        ),
-      ],
+      ),
     );
   }
 
-  Widget range1Field(String title, String hint) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: range_0_200?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            range_0_200 = double.parse(value);
-          },
-        ),
-      ],
+  Widget domainInputField() {
+    return TextFormField(
+      initialValue: initialData?.domain,
+      decoration: InputDecoration(
+        hintText: 'egaugeXXXXX',
+        border: OutlineInputBorder(),
+      ),
+      onSaved: (value) => domain = value,
+      validator: validateStringField,
     );
   }
 
-  Widget range2Field(String title, String hint) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: range_201_300?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            range_201_300 = double.parse(value);
-          },
-        ),
-      ],
+  Widget firstFixedPriceRangeInputField() {
+    return TextFormField(
+      initialValue: fix_0_100?.toString() ?? '',
+      keyboardType: TextInputType.number,
+      decoration:
+          InputDecoration(hintText: '37.95', border: OutlineInputBorder()),
+      onSaved: (value) => fix_0_100 = double.parse(value),
+      validator: validateNumberField,
     );
   }
 
-  Widget range3Field(String title, String hint) {
-    return Column(
-      children: [
-        SectionHeader(
-          title: title,
-          hideInfo: true,
-          titleSize: 15,
-          hideDivider: true,
-          titleWeight: FontWeight.w500,
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          initialValue: range_301_700?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            range_301_700 = double.parse(value);
-          },
-        ),
-      ],
+  Widget secondFixedPriceRangeInputField() {
+    return TextFormField(
+      initialValue: fix_101?.toString() ?? '',
+      keyboardType: TextInputType.number,
+      decoration:
+          InputDecoration(hintText: '137.25', border: OutlineInputBorder()),
+      onSaved: (value) => fix_101 = double.parse(value),
+      validator: validateNumberField,
     );
   }
 
-  Widget range4Field(String title, String hint) {
+  Widget firstPriceRangeInputField() {
+    return TextFormField(
+      initialValue: range_0_200?.toString() ?? '',
+      keyboardType: TextInputType.number,
+      decoration:
+          InputDecoration(hintText: '4.44', border: OutlineInputBorder()),
+      onSaved: (value) => range_0_200 = double.parse(value),
+      validator: validateNumberField,
+    );
+  }
+
+  Widget secondPriceRangeInputField() {
+    return TextFormField(
+      keyboardType: TextInputType.number,
+      initialValue: range_201_300?.toString() ?? '',
+      decoration:
+          InputDecoration(hintText: '6.97', border: OutlineInputBorder()),
+      onSaved: (value) => range_201_300 = double.parse(value),
+      validator: validateNumberField,
+    );
+  }
+
+  Widget thirdPriceRangeInputField() {
+    return TextFormField(
+      initialValue: range_301_700?.toString() ?? '',
+      keyboardType: TextInputType.number,
+      decoration:
+          InputDecoration(hintText: '10.86', border: OutlineInputBorder()),
+      onSaved: (value) => range_301_700 = double.parse(value),
+      validator: validateNumberField,
+    );
+  }
+
+  Widget fourthPriceRangeInputField() {
+    return TextFormField(
+      initialValue: range_701?.toString() ?? '',
+      keyboardType: TextInputType.number,
+      decoration:
+          InputDecoration(hintText: '11.10', border: OutlineInputBorder()),
+      onSaved: (value) => range_701 = double.parse(value),
+      validator: validateNumberField,
+    );
+  }
+
+  Widget buildInputField(String title, Widget inputField ) {
     return Column(
       children: [
         SectionHeader(
@@ -212,15 +232,7 @@ class SettingsPage extends StatelessWidget {
           titleWeight: FontWeight.w500,
         ),
         const SizedBox(height: 4),
-        TextFormField(
-          initialValue: range_701?.toStringAsFixed(2),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration:
-              InputDecoration(hintText: hint, border: OutlineInputBorder()),
-          onChanged: (value) {
-            range_701 = double.parse(value);
-          },
-        ),
+        inputField
       ],
     );
   }
@@ -254,7 +266,9 @@ class SettingsPage extends StatelessWidget {
                   );
                 }).toList(),
                 onChanged: (value) {
-                  billDay = value;
+                  setState(() {
+                    billDay = value;
+                  });
                 },
               ),
             ),
@@ -268,71 +282,7 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  _openPopup(context) {
-    Alert(
-        style: AlertStyle(
-          animationType: AnimationType.fromTop,
-          isCloseButton: false,
-          animationDuration: Duration(milliseconds: 400),
-        ),
-        context: context,
-        title: "",
-        content: Container(
-          width: 200,
-          height: 70,
-          child: Text(
-            'Los ajustes no puedes estar vacios o ser 0.',
-            style: TextStyle(fontSize: 14),
-          ),
-        ),
-        buttons: [
-          DialogButton(
-            color: Colors.white,
-            onPressed: () => {Navigator.pop(context)},
-            child: Text(
-              "ok",
-              style: TextStyle(color: Color(0XFF3C6E71), fontSize: 15),
-            ),
-          ),
-        ]).show();
-  }
-
-  _saveOrCreateSettings(context) async {
-    var newUser = UserSettings(
-        id: 1,
-        domain: domain,
-        billDay: billDay,
-        fix_0_100: fix_0_100,
-        fix_101: fix_101,
-        range_0_200: range_0_200,
-        range_201_300: range_201_300,
-        range_301_700: range_301_700,
-        range_701: range_701);
-
-    if (newUser.domain != null &&
-        newUser.domain?.isNotEmpty &&
-        newUser.fix_0_100 > 0 &&
-        newUser.fix_101 > 0 &&
-        newUser.range_0_200 > 0 &&
-        newUser.range_201_300 > 0 &&
-        newUser.range_301_700 > 0 &&
-        newUser.range_701 > 0) {
-      await dataBase.updateSettings(newUser);
-      if (firstRun) {
-        Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-                builder: (context) => MyHomePage(title: 'DashBoard')),
-            ModalRoute.withName("/Home"));
-      } else {
-        Navigator.pop(context, 'changed');
-      }
-    } else {
-      _openPopup(context);
-    }
-  }
-
-  AppBar buildAppBar(context) {
+  AppBar buildAppBar() {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
@@ -343,10 +293,36 @@ class SettingsPage extends StatelessWidget {
       toolbarHeight: 60,
       actions: [
         IconButton(
-          icon: Icon(FontAwesome.save),
-          color: Color(0XFF3C6E71),
-          onPressed: () => _saveOrCreateSettings(context),
-        )
+            icon: Icon(FontAwesome.save),
+            color: Color(0XFF3C6E71),
+            onPressed: () async {
+              if (formKey.currentState.validate()) {
+                formKey.currentState.save();
+
+                var newUser = UserSettings(
+                    id: 1,
+                    domain: domain,
+                    billDay: billDay,
+                    fix_0_100: fix_0_100,
+                    fix_101: fix_101,
+                    range_0_200: range_0_200,
+                    range_201_300: range_201_300,
+                    range_301_700: range_301_700,
+                    range_701: range_701);
+
+                await widget.dataBase.updateSettings(newUser);
+
+                if (widget.firstRun) {
+                  Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => MyHomePage(title: 'DashBoard')),
+                      ModalRoute.withName("/Home"));
+                } else {
+                  Navigator.pop(context, 'changed');
+                }
+              }
+            })
       ],
       title: Text(
         'Ajustes',
@@ -354,83 +330,6 @@ class SettingsPage extends StatelessWidget {
             color: Color(0XFF3C6E71),
             fontSize: 30,
             fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: buildAppBar(context),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            SectionHeader(title: "Generales", hideInfo: true),
-            const SizedBox(height: 8),
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: Color(0XFF3C6E71),
-                  )),
-              child: Column(
-                children: [
-                  buildTextField("Dominio", "egaugeXXXXX"),
-                  SizedBox(height: 16),
-                  buildNumberSelection(billDay),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SectionHeader(title: "Facturación", hideInfo: true),
-            const SizedBox(height: 8),
-            SectionHeader(
-              title: 'Cargo fijo',
-              hideInfo: true,
-              titleSize: 16,
-              hideDivider: false,
-            ),
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: Color(0XFF3C6E71),
-                  )),
-              child: Column(
-                children: [
-                  fix1Field("De 0 hasta 100 kWh", "37.95"),
-                  fix2Field("Mayor a 101 kWh", "137.25"),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SectionHeader(
-              title: 'Cargo por energía',
-              hideInfo: true,
-              titleSize: 16,
-              hideDivider: false,
-            ),
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: Color(0XFF3C6E71),
-                  )),
-              child: Column(
-                children: [
-                  range1Field("De 0 hasta 200 kWh", "4.44"),
-                  range2Field("De 201 a 300 kWh", "6.97"),
-                  range3Field("De 301 a 700 kWh", "10.86"),
-                  range4Field("Mas de 700 kWh", "11.10"),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
